@@ -46,23 +46,17 @@ export async function POST(request: NextRequest) {
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}` : '';
     const zai = await getAI();
 
-    const prompt = `Create a 15-minute narrated STORY for "${title}" by ${author}.
-This is a LONGER, more engaging story version - like an audiobook chapter.
+    const prompt = `Create a short narrated STORY for "${title}" by ${author}.
 About: ${description || 'No description'}${genreHint}
 
-Write in a storytelling style that's engaging to listen to. 
-Structure the story with clear chapters:
-- Introduction (1-2 minutes)
-- Chapter 1: The Beginning (3-4 minutes)  
-- Chapter 2: The Journey (3-4 minutes)
-- Chapter 3: The Climax (3-4 minutes)
-- Chapter 4: The Resolution (2-3 minutes)
+Write in an engaging storytelling style. Include 4 chapters:
+1. The Beginning
+2. The Journey  
+3. The Climax
+4. The Resolution
 
-Total story should be approximately 3000-4000 words for a 15-minute audio.
-Make it feel like someone is telling you the story orally.
-
-Return JSON:
-{"title":"The Story of [title]","introduction":"Welcome...","chapters":[{"number":1,"title":"Chapter Name","content":"..."},...],"fullStory":"Full story text 3000-4000 words"}`;
+Return JSON only:
+{"title":"The Story of [title]","introduction":"Brief intro...","chapters":[{"number":1,"title":"Beginning","content":"..."},...],"fullStory":"Full story text 1500-2000 words"}`;
 
     let story: AIStory | null = null;
     let rawContent = '';
@@ -76,7 +70,7 @@ Return JSON:
             { role: 'user', content: prompt },
           ],
           temperature: 0.7,
-          max_tokens: 6000,
+          max_tokens: 3000,
         });
         rawContent = completion.choices[0]?.message?.content || '';
         story = tryParseJSON(rawContent);
