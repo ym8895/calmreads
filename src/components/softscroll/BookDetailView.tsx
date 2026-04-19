@@ -358,7 +358,7 @@ export function BookDetailView() {
               )}
 
               {/* Story Tab */}
-              {!isGenerating && activeTab === 'story' && (story || localStory) && (
+              {!isGenerating && activeTab === 'story' && localStory && (
                 <motion.div
                   key="story-content"
                   initial={{ opacity: 0, y: 10 }}
@@ -368,12 +368,12 @@ export function BookDetailView() {
                   className="space-y-6"
                 >
                   <div>
-                    <h2 className="text-xl font-bold text-foreground/90 mb-4">{story.title || 'Book Story'}</h2>
+                    <h2 className="text-xl font-bold text-foreground/90 mb-4">{localStory?.title || 'Book Story'}</h2>
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6">
-                      {story.introduction || 'Loading story...'}
+                      {localStory?.introduction || 'Loading story...'}
                     </p>
                   </div>
-                  {story.chapters && story.chapters.length > 0 && story.chapters.map((chapter: { number: number; title: string; content: string }) => (
+                  {localStory?.chapters && localStory.chapters.length > 0 && localStory.chapters.map((chapter: { number: number; title: string; content: string }) => (
                     <div key={chapter.number} className="border-l-2 border-[#8FB9A8] pl-4">
                       <h3 className="text-lg font-semibold text-foreground/90 mb-2">
                         {chapter.number}. {chapter.title}
