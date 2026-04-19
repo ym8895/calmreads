@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
-import ZAI from 'z-ai-web-dev-sdk';
+import { getAI } from '@/lib/ai-client';
 
 function tryParseJSON(content: string): AISummary | null {
   let cleaned = content.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
-  }
+  if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
     const parsed = JSON.parse(cleaned);
     if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) return parsed as AISummary;
@@ -39,8 +37,6 @@ function buildFallback(title: string, author: string, raw: string): AISummary {
   };
 }
 
-let cachedAI: Awaited<ReturnType<typeof ZAI.create>> | null = null;
-
 export async function POST(request: NextRequest) {
   try {
     const { title, author, description, categories } = await request.json() as {
@@ -49,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!title || !author) return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
 
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}.` : '';
-    if (!cachedAI) cachedAI = await ZAI.create();
+    const zai = await getAI();
 
     const prompt = `Write a UNIQUE, BOOK-SPECIFIC summary for "${title}" by ${author}.
 About: ${description || 'No description'}${genreHint}
@@ -64,7 +60,7 @@ JSON only, no markdown.`;
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await cachedAI.chat.completions.create({
+        const completion = await zai.chat.completions.create({
           messages: [
             { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
             { role: 'user', content: prompt },

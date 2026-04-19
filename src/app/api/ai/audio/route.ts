@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
-
-let cachedAI: Awaited<ReturnType<typeof ZAI.create>> | null = null;
+import { getAI } from '@/lib/ai-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,9 +8,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Text content is required' }, { status: 400 });
     }
 
-    if (!cachedAI) cachedAI = await ZAI.create();
+    const zai = await getAI();
 
-    const response = await cachedAI.audio.tts.create({
+    const response = await zai.audio.tts.create({
       input: text.slice(0, 3000),
       voice: 'tongtong',
       speed: 1.0,

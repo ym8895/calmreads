@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Slide } from '@/lib/types';
-import ZAI from 'z-ai-web-dev-sdk';
+import { getAI } from '@/lib/ai-client';
 
 function tryParseSlides(content: string): Slide[] | null {
   let cleaned = content.trim();
@@ -39,8 +39,6 @@ function buildFallbackSlides(raw: string, title?: string): Slide[] {
   return slides;
 }
 
-let cachedAI: Awaited<ReturnType<typeof ZAI.create>> | null = null;
-
 export async function POST(request: NextRequest) {
   try {
     const { summary, bookTitle, bookAuthor } = await request.json() as {
@@ -49,7 +47,7 @@ export async function POST(request: NextRequest) {
     };
     if (!summary?.fullText) return NextResponse.json({ error: 'Summary text is required' }, { status: 400 });
 
-    if (!cachedAI) cachedAI = await ZAI.create();
+    const zai = await getAI();
     const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
 
     const prompt = `Create 10 UNIQUE slides for ${bookRef}.
@@ -66,7 +64,7 @@ Return ONLY JSON array: [{"title":"...","points":["...","..."]}, ...]`;
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await cachedAI.chat.completions.create({
+        const completion = await zai.chat.completions.create({
           messages: [
             { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
             { role: 'user', content: prompt },
