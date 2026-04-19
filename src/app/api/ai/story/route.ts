@@ -7,13 +7,13 @@ function tryParseJSON(content: string): AIStory | null {
   if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
     const parsed = JSON.parse(cleaned);
-    if (parsed.introduction && parsed.chapters && parsed.fullStory) return parsed as AIStory;
+    if (parsed.introduction && parsed.chapters) return parsed as AIStory;
   } catch {}
   const m = cleaned.match(/\{[\s\S]*\}/);
   if (m) {
     try {
       const parsed = JSON.parse(m[0]);
-      if (parsed.introduction && parsed.chapters && parsed.fullStory) return parsed as AIStory;
+      if (parsed.introduction && parsed.chapters) return parsed as AIStory;
     } catch {}
   }
   return null;
