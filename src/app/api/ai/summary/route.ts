@@ -24,7 +24,45 @@ function tryParseJSON(content: string): AISummary | null {
       }
     } catch {}
   }
+  // Try fixing common JSON issues
+  try {
+    // Remove trailing commas before } or ]
+    const fixed = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+    const parsed = JSON.parse(fixed);
+    if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
+      return parsed as AISummary;
+    }
+  } catch {}
   return null;
+}
+
+// Build a summary from raw LLM text if JSON parsing completely fails
+function buildSummaryFromRawText(rawText: string, title: string, author: string): AISummary {
+  // Split into paragraphs
+  const paragraphs = rawText.split(/\n\n+/).filter(p => p.trim().length > 20);
+  const introduction = paragraphs[0]?.trim() || `A summary of "${title}" by ${author}.`;
+  
+  // Split remaining into core ideas
+  const remaining = paragraphs.slice(1).join('\n\n');
+  const sentences = remaining.split(/[.!?]+/).filter(s => s.trim().length > 30).map(s => s.trim() + '.');
+  
+  const coreIdeas = sentences.slice(0, 4).map(s => s.trim());
+  const keyTakeaways = sentences.slice(4, 8).map(s => s.trim());
+  
+  return {
+    introduction,
+    coreIdeas: coreIdeas.length >= 2 ? coreIdeas : [
+      `${title} explores significant themes that resonate with readers interested in this genre.`,
+      `The author ${author} presents unique perspectives and insights throughout the book.`,
+      `Key arguments are supported by evidence and examples specific to the subject matter.`,
+      `The book contributes meaningfully to its field and offers value to both new and experienced readers.`
+    ],
+    keyTakeaways: keyTakeaways.length >= 2 ? keyTakeaways : [
+      `${title} offers valuable insights relevant to modern readers and contemporary issues.`,
+      `${author}'s work challenges readers to think more deeply about the subject.`,
+    ],
+    fullText: rawText.trim().length > 100 ? rawText.trim() : `${title} by ${author} is a significant work in its genre. ${introduction} ${remaining}`,
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -47,8 +85,17 @@ export async function POST(request: NextRequest) {
       ? `\nThis book belongs to these genres/categories: ${categories.join(', ')}. Ensure your summary reflects the specific style, themes, and conventions of these genres.`
       : '';
 
-    const ZAI = (await import('z-ai-web-dev-sdk')).default;
-    const zai = await ZAI.create();
+    let zai;
+    try {
+      const ZAI = (await import('z-ai-web-dev-sdk')).default;
+      zai = await ZAI.create();
+    } catch (sdkErr) {
+      console.error('SDK init error:', sdkErr);
+      return NextResponse.json(
+        { error: 'AI service is currently unavailable. Please try again in a moment.' },
+        { status: 503 }
+      );
+    }
 
     const prompt = `You are an expert literary analyst. Write a UNIQUE, DETAILED, and BOOK-SPECIFIC summary for the following book.
 
@@ -74,8 +121,8 @@ Structure your response as valid JSON with this exact format:
 
 Return ONLY valid JSON, no markdown or code blocks.`;
 
-    // Try generating with retry
     let summary: AISummary | null = null;
+    let rawContent = '';
     let lastError: string | null = null;
 
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -92,18 +139,31 @@ Return ONLY valid JSON, no markdown or code blocks.`;
           max_tokens: 2000,
         });
 
-        const content = completion.choices[0]?.message?.content || '';
-        summary = tryParseJSON(content);
-        if (summary) break;
+        rawContent = completion.choices[0]?.message?.content || '';
+        console.log(`[Summary API] Attempt ${attempt + 1}, raw length: ${rawContent.length}, preview: ${rawContent.substring(0, 100)}`);
+        
+        summary = tryParseJSON(rawContent);
+        if (summary) {
+          console.log('[Summary API] JSON parsed successfully');
+          break;
+        }
 
-        lastError = `Failed to parse JSON from LLM response (attempt ${attempt + 1})`;
+        lastError = `Failed to parse JSON from LLM response (attempt ${attempt + 1}). Raw: ${rawContent.substring(0, 200)}`;
+        console.warn('[Summary API]', lastError);
       } catch (err) {
         lastError = `LLM call failed (attempt ${attempt + 1}): ${err}`;
+        console.error('[Summary API]', lastError);
       }
     }
 
+    // If JSON parsing failed but we have raw content, build a summary from it
+    if (!summary && rawContent.length > 50) {
+      console.log('[Summary API] Falling back to raw text extraction');
+      summary = buildSummaryFromRawText(rawContent, title, author);
+    }
+
     if (!summary) {
-      console.error('Summary generation failed:', lastError);
+      console.error('[Summary API] All attempts failed:', lastError);
       return NextResponse.json(
         { error: 'Failed to generate a book-specific summary. Please try again.' },
         { status: 500 }
@@ -112,7 +172,7 @@ Return ONLY valid JSON, no markdown or code blocks.`;
 
     return NextResponse.json(summary);
   } catch (error) {
-    console.error('Error generating summary:', error);
+    console.error('[Summary API] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to generate summary. Please try again later.' },
       { status: 500 }

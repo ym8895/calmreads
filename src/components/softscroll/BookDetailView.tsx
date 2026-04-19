@@ -34,7 +34,8 @@ export function BookDetailView() {
   }, [currentBook?.id]);
 
   const generateSummary = async () => {
-    if (!currentBook || summary) return;
+    if (!currentBook) return;
+    if (summary) return;
     setIsGenerating(true);
     setError(null);
     try {
@@ -65,7 +66,16 @@ export function BookDetailView() {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
     // Audio tab uses browser-native TTS — no API call needed
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, currentBook?.id]);
+
+  // Also regenerate if tab changes while on a new book
+  useEffect(() => {
+    if (activeTab === 'summary' && currentBook && !summary) {
+      generateSummary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, summary, currentBook?.id]);
 
   if (!currentBook) return null;
 
@@ -185,15 +195,27 @@ export function BookDetailView() {
           <div className="p-5 sm:p-8 min-h-[400px]">
             <AnimatePresence mode="wait">
               {/* Error Display */}
-              {error && (
+              {error && !isGenerating && (
                 <motion.div
                   key="error"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center gap-3 text-red-500 bg-red-50 dark:bg-red-950/20 p-4 rounded-xl mb-4"
+                  className="flex flex-col items-center gap-3 text-center py-12"
                 >
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-sm">{error}</span>
+                  <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center">
+                    <AlertCircle className="w-7 h-7 text-red-500" />
+                  </div>
+                  <p className="text-sm text-red-500 max-w-md">{error}</p>
+                  <button
+                    onClick={() => {
+                      setError(null);
+                      if (activeTab === 'summary') { setSummary(null); generateSummary(); }
+                      else if (activeTab === 'slides') { setSlides(null); generateSlides(); }
+                    }}
+                    className="px-5 py-2 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    Try Again
+                  </button>
                 </motion.div>
               )}
 
