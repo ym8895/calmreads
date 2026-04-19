@@ -18,13 +18,11 @@ import { SlideCarousel } from './SlideCarousel';
 type AITab = 'summary' | 'story' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, story: storyFromStore, setStory, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localStory, setLocalStory] = useState<AIStory | null>(null);
-
-  const story = currentBook?.id ? localStory : null;
 
   const isSaved = currentBook ? savedBooks.some((b) => b.id === currentBook.id) : false;
 
@@ -91,7 +89,6 @@ export function BookDetailView() {
       const data = await fetchAIStory(currentBook);
       console.log('Story received:', data);
       setLocalStory(data);
-      setStory(data);
     } catch (err) {
       console.error('Story error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
