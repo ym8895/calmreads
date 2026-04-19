@@ -1,0 +1,101 @@
+import { NextRequest, NextResponse } from 'next/server';
+import type { AIStory } from '@/lib/types';
+import { getAI } from '@/lib/ai-client';
+
+function tryParseJSON(content: string): AIStory | null {
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (parsed.introduction && parsed.chapters && parsed.fullStory) return parsed as AIStory;
+  } catch {}
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  if (m) {
+    try {
+      const parsed = JSON.parse(m[0]);
+      if (parsed.introduction && parsed.chapters && parsed.fullStory) return parsed as AIStory;
+    } catch {}
+  }
+  return null;
+}
+
+function buildFallback(title: string, author: string, raw: string): AIStory {
+  const paras = raw.split(/\n\n+/).filter(p => p.trim().length > 20);
+  return {
+    title: `The Story of ${title}`,
+    introduction: paras[0]?.trim() || `Welcome to the story of "${title}" by ${author}.`,
+    chapters: [
+      { number: 1, title: 'Beginning', content: paras.slice(1, 4).join('\n\n') },
+      { number: 2, title: 'Journey', content: paras.slice(4, 7).join('\n\n') },
+      { number: 3, title: 'Climax', content: paras.slice(7, 10).join('\n\n') },
+      { number: 4, title: 'Resolution', content: paras.slice(10, 13).join('\n\n') },
+    ],
+    fullStory: raw.trim().slice(0, 10000),
+  };
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { title, author, description, categories } = await request.json() as {
+      title: string; author: string; description?: string; categories?: string[];
+    };
+    if (!title || !author) {
+      return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
+    }
+
+    const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}` : '';
+    const zai = await getAI();
+
+    const prompt = `Create a 15-minute narrated STORY for "${title}" by ${author}.
+This is a LONGER, more engaging story version - like an audiobook chapter.
+About: ${description || 'No description'}${genreHint}
+
+Write in a storytelling style that's engaging to listen to. 
+Structure the story with clear chapters:
+- Introduction (1-2 minutes)
+- Chapter 1: The Beginning (3-4 minutes)  
+- Chapter 2: The Journey (3-4 minutes)
+- Chapter 3: The Climax (3-4 minutes)
+- Chapter 4: The Resolution (2-3 minutes)
+
+Total story should be approximately 3000-4000 words for a 15-minute audio.
+Make it feel like someone is telling you the story orally.
+
+Return JSON:
+{"title":"The Story of [title]","introduction":"Welcome...","chapters":[{"number":1,"title":"Chapter Name","content":"..."},...],"fullStory":"Full story text 3000-4000 words"}`;
+
+    let story: AIStory | null = null;
+    let rawContent = '';
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const completion = await zai.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 6000,
+        });
+        rawContent = completion.choices[0]?.message?.content || '';
+        story = tryParseJSON(rawContent);
+        if (story) break;
+      } catch (err) {
+        console.error(`[Story] Attempt ${attempt + 1}:`, err);
+      }
+    }
+
+    if (!story && rawContent.length > 50) {
+      story = buildFallback(title, author, rawContent);
+    }
+    if (!story) {
+      return NextResponse.json({ error: 'Failed to generate story. Please try again.' }, { status: 500 });
+    }
+
+    return NextResponse.json(story);
+  } catch (error) {
+    console.error('[Story API] Fatal:', error);
+    return NextResponse.json({ error: 'Failed to generate story. Please try again later.' }, { status: 500 });
+  }
+}

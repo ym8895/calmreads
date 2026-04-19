@@ -3,22 +3,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
-import { fetchAISummary, fetchAISlides, fetchAIAudio } from '@/lib/api';
-import type { AISummary, Slide } from '@/lib/types';
+import { fetchAISummary, fetchAISlides, fetchAIAudio, fetchAIStory } from '@/lib/api';
+import type { AISummary, Slide, AIStory } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import {
-  FileText, Headphones, LayoutGrid,
+  FileText, Headphones, LayoutGrid, BookOpen,
   ChevronRight, Volume2, Loader2, AlertCircle
 } from 'lucide-react';
 import { AudioPlayer, stopGlobalSpeech, AIAudioPlayer } from './AudioPlayer';
 import { ArtisticBookCover } from './ArtisticBook';
 import { SlideCarousel } from './SlideCarousel';
 
-type AITab = 'summary' | 'audio' | 'slides';
+type AITab = 'summary' | 'story' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, story, setStory, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,10 +80,25 @@ export function BookDetailView() {
     }
   };
 
+  const generateStory = async () => {
+    if (!currentBook || story) return;
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const data = await fetchAIStory(currentBook);
+      setStory(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
     else if (activeTab === 'audio' && summary) generateAudio();
+    else if (activeTab === 'story' && currentBook) generateStory();
   }, [activeTab, currentBook?.id]);
 
   useEffect(() => {
@@ -96,8 +111,9 @@ export function BookDetailView() {
 
   const tabs: { id: AITab; label: string; icon: React.ReactNode }[] = [
     { id: 'summary', label: 'AI Summary', icon: <FileText className="w-4 h-4" /> },
+    { id: 'story', label: 'Story', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'slides', label: 'Book Slides', icon: <LayoutGrid className="w-4 h-4" /> },
-    { id: 'audio', label: 'Audio Overview', icon: <Headphones className="w-4 h-4" /> },
+    { id: 'audio', label: 'Audio', icon: <Headphones className="w-4 h-4" /> },
   ];
 
   return (
@@ -335,6 +351,35 @@ export function BookDetailView() {
                   ) : (
                     <p className="text-center text-muted-foreground">No audio available</p>
                   )}
+                </motion.div>
+              )}
+
+              {/* Story Tab */}
+              {!isGenerating && activeTab === 'story' && story && (
+                <motion.div
+                  key="story-content"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground/90 mb-4">{story.title}</h2>
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6">
+                      {story.introduction}
+                    </p>
+                  </div>
+                  {story.chapters?.map((chapter) => (
+                    <div key={chapter.number} className="border-l-2 border-[#8FB9A8] pl-4">
+                      <h3 className="text-lg font-semibold text-foreground/90 mb-2">
+                        {chapter.number}. {chapter.title}
+                      </h3>
+                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {chapter.content}
+                      </p>
+                    </div>
+                  ))}
                 </motion.div>
               )}
 

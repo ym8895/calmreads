@@ -20,6 +20,13 @@ export interface AISummary {
   fullText: string;
 }
 
+export interface AIStory {
+  title: string;
+  introduction: string;
+  chapters: { number: number; title: string; content: string }[];
+  fullStory: string;
+}
+
 export interface Slide {
   title: string;
   points: string[];

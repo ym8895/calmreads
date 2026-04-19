@@ -1,4 +1,4 @@
-import type { Book, AISummary, Slide } from './types';
+import type { Book, AISummary, Slide, AIStory } from './types';
 
 const API_BASE = '/api';
 
@@ -60,5 +60,23 @@ export async function fetchAIAudio(summary: AISummary): Promise<{ useBrowserTts:
     body: JSON.stringify({ text: summary.fullText }),
   });
   if (!res.ok) throw new Error('Failed to generate audio');
+  return res.json();
+}
+
+export async function fetchAIStory(book: Book): Promise<AIStory> {
+  const res = await fetch(`${API_BASE}/ai/story`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: book.title,
+      author: book.author,
+      description: book.description,
+      categories: book.categories,
+    }),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({ error: 'Failed to generate story' }));
+    throw new Error(errData.error || 'Failed to generate story');
+  }
   return res.json();
 }

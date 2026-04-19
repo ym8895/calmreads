@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppView, Book, AISummary, Slide } from './types';
+import type { AppView, Book, AISummary, Slide, AIStory } from './types';
 
 interface SoftScrollState {
   currentView: AppView;
@@ -11,6 +11,7 @@ interface SoftScrollState {
   currentBook: Book | null;
   savedBooks: Book[];
   summary: AISummary | null;
+  story: AIStory | null;
   slides: Slide[] | null;
   audioUrl: string | null;
   isLoading: boolean;
@@ -27,6 +28,7 @@ interface SoftScrollState {
   setCurrentBook: (book: Book | null) => void;
   toggleSaveBook: (book: Book) => void;
   setSummary: (summary: AISummary | null) => void;
+  setStory: (story: AIStory | null) => void;
   setSlides: (slides: Slide[] | null) => void;
   setAudioUrl: (url: string | null) => void;
   setIsLoading: (loading: boolean) => void;
@@ -60,7 +62,7 @@ export const useSoftScrollStore = create<SoftScrollState>()(
         })),
       setSelectedInterests: (interests) => set({ selectedInterests: interests }),
       setRecommendedBooks: (books) => set({ recommendedBooks: books }),
-      setCurrentBook: (book) => set({ currentBook: book, summary: null, slides: null, audioUrl: null }),
+      setCurrentBook: (book) => set({ currentBook: book, summary: null, story: null, slides: null, audioUrl: null }),
       toggleSaveBook: (book) =>
         set((state) => ({
           savedBooks: state.savedBooks.some((b) => b.id === book.id)
