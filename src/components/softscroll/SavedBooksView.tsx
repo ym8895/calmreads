@@ -44,7 +44,7 @@ export function SavedBooksView() {
           </p>
           <button
             onClick={() => setCurrentView('discover')}
-            className="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm transition-colors"
+            className="px-6 py-3 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white font-medium text-sm transition-colors"
           >
             Discover Books
           </button>

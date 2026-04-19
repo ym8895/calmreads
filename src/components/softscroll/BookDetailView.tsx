@@ -95,7 +95,7 @@ export function BookDetailView() {
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
           {/* Cover */}
           <div className="flex-shrink-0 self-center sm:self-start">
-            <div className="w-40 sm:w-48 h-56 sm:h-72 rounded-2xl overflow-hidden shadow-xl shadow-amber-100/50 dark:shadow-amber-900/20 bg-muted">
+            <div className="w-40 sm:w-48 h-56 sm:h-72 rounded-2xl overflow-hidden shadow-xl shadow-[#8FB9A8]/15 dark:shadow-black/20 bg-muted">
               <img
                 src={currentBook.coverImage}
                 alt={currentBook.title}
@@ -128,7 +128,7 @@ export function BookDetailView() {
                   </span>
                 ))}
                 {currentBook.isFree && (
-                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
                     Free
                   </span>
                 )}
@@ -148,7 +148,7 @@ export function BookDetailView() {
               {currentBook.isFree && currentBook.fullTextUrl && (
                 <Button
                   onClick={() => setCurrentView('reader')}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Read Free
@@ -196,7 +196,7 @@ export function BookDetailView() {
                   flex items-center gap-2 px-4 sm:px-6 py-4 text-sm font-medium
                   transition-colors relative cursor-pointer
                   ${activeTab === tab.id
-                    ? 'text-amber-700 dark:text-amber-300'
+                    ? 'text-[#7AA896] dark:text-[#8FB9A8]'
                     : 'text-muted-foreground hover:text-foreground'
                   }
                 `}
@@ -206,7 +206,7 @@ export function BookDetailView() {
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 rounded-full"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8FB9A8] rounded-full"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -239,7 +239,7 @@ export function BookDetailView() {
                   exit={{ opacity: 0 }}
                   className="flex flex-col items-center justify-center py-16"
                 >
-                  <Loader2 className="w-10 h-10 text-amber-500 animate-spin mb-4" />
+                  <Loader2 className="w-10 h-10 text-[#8FB9A8] animate-spin mb-4" />
                   <p className="text-muted-foreground text-sm">
                     {activeTab === 'summary' && 'Generating AI summary...'}
                     {activeTab === 'slides' && 'Creating visual summary...'}
@@ -263,7 +263,7 @@ export function BookDetailView() {
                 >
                   <div>
                     <h3 className="text-lg font-semibold text-foreground/90 mb-3 flex items-center gap-2">
-                      <ChevronRight className="w-5 h-5 text-amber-500" />
+                      <ChevronRight className="w-5 h-5 text-[#8FB9A8]" />
                       Introduction
                     </h3>
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
@@ -273,13 +273,13 @@ export function BookDetailView() {
 
                   <div>
                     <h3 className="text-lg font-semibold text-foreground/90 mb-3 flex items-center gap-2">
-                      <ChevronRight className="w-5 h-5 text-amber-500" />
+                      <ChevronRight className="w-5 h-5 text-[#8FB9A8]" />
                       Core Ideas
                     </h3>
                     <div className="space-y-3">
                       {summary.coreIdeas.map((idea, i) => (
                         <div key={i} className="flex gap-3 items-start">
-                          <span className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="w-6 h-6 rounded-full bg-[#D4E6E0] dark:bg-[#2C4A3F] text-[#2C4A3F] dark:text-[#8FB9A8] text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
                             {i + 1}
                           </span>
                           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
@@ -292,12 +292,12 @@ export function BookDetailView() {
 
                   <div>
                     <h3 className="text-lg font-semibold text-foreground/90 mb-3 flex items-center gap-2">
-                      <ChevronRight className="w-5 h-5 text-amber-500" />
+                      <ChevronRight className="w-5 h-5 text-[#8FB9A8]" />
                       Key Takeaways
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {summary.keyTakeaways.map((takeaway, i) => (
-                        <div key={i} className="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30">
+                        <div key={i} className="p-3.5 rounded-xl bg-[#E8E4D9]/60 dark:bg-[#2C4A3F]/30 border border-[#D4E6E0] dark:border-[#344E44]">
                           <p className="text-sm text-foreground/80 leading-relaxed">
                             {takeaway}
                           </p>
@@ -318,8 +318,8 @@ export function BookDetailView() {
                   transition={{ duration: 0.3 }}
                 >
                   <div className="text-center mb-6">
-                    <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
-                      <Volume2 className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                    <div className="w-16 h-16 rounded-full bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center mx-auto mb-4">
+                      <Volume2 className="w-8 h-8 text-[#7AA896] dark:text-[#8FB9A8]" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground/90">
                       Audio Overview

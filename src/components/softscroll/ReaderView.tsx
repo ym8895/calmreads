@@ -106,7 +106,7 @@ export function ReaderView() {
                   onClick={() => updateReaderSettings({ lineHeight: lh })}
                   className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
                     readerSettings.lineHeight === lh
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                      ? 'bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8]'
                       : 'hover:bg-muted text-muted-foreground'
                   }`}
                 >
@@ -181,7 +181,7 @@ export function ReaderView() {
               href={currentBook.fullTextUrl || currentBook.previewLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium text-sm transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white font-medium text-sm transition-colors"
             >
               Read on Open Library
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

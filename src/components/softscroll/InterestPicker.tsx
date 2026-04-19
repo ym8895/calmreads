@@ -48,7 +48,7 @@ export function InterestPicker() {
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground/90 tracking-tight mb-4">
           Discover your next{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-500 to-rose-500">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7AA896] via-[#5A7A6A] to-[#2C4A3F]">
             favorite book
           </span>
         </h1>
@@ -78,7 +78,7 @@ export function InterestPicker() {
                 relative p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all duration-300
                 cursor-pointer group
                 ${isSelected
-                  ? 'border-amber-400 dark:border-amber-500 bg-amber-50/80 dark:bg-amber-950/30 shadow-sm shadow-amber-200/50 dark:shadow-amber-900/20'
+                  ? 'border-[#8FB9A8] dark:border-[#7AA896] bg-[#D4E6E0]/60 dark:bg-[#2C4A3F]/40 shadow-sm shadow-[#8FB9A8]/20'
                   : 'border-border/60 bg-card hover:border-border hover:bg-muted/30'
                 }
               `}
@@ -86,7 +86,7 @@ export function InterestPicker() {
               {isSelected && (
                 <motion.div
                   layoutId="selected-indicator"
-                  className="absolute top-2 right-2 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center"
+                  className="absolute top-2 right-2 w-5 h-5 bg-[#8FB9A8] rounded-full flex items-center justify-center"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
@@ -98,7 +98,7 @@ export function InterestPicker() {
               )}
               <span className="text-xl sm:text-2xl mb-1.5 block">{cat.emoji}</span>
               <span className={`text-xs sm:text-sm font-medium block ${
-                isSelected ? 'text-amber-800 dark:text-amber-200' : 'text-foreground/80'
+                isSelected ? 'text-[#2C4A3F] dark:text-[#8FB9A8]' : 'text-foreground/80'
               }`}>
                 {cat.name}
               </span>
@@ -121,7 +121,7 @@ export function InterestPicker() {
             rounded-2xl px-8 py-6 text-base font-semibold
             transition-all duration-300 shadow-lg
             ${selectedInterests.length > 0
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-200/50 dark:shadow-amber-900/30 hover:shadow-xl'
+              ? 'bg-[#8FB9A8] hover:bg-[#7AA896] text-white shadow-[#8FB9A8]/30 hover:shadow-xl'
               : 'bg-muted text-muted-foreground cursor-not-allowed shadow-none'
             }
           `}

@@ -44,8 +44,8 @@ export function Header() {
             onClick={() => setCurrentView('interests')}
             className="flex items-center gap-2.5 group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-              <BookOpen className="h-5 w-5 text-amber-700 dark:text-amber-300" />
+            <div className="w-9 h-9 rounded-xl bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <BookOpen className="h-5 w-5 text-[#2C4A3F] dark:text-[#8FB9A8]" />
             </div>
             <span className="text-lg font-semibold tracking-tight text-foreground/90">
               SoftScroll
@@ -63,7 +63,7 @@ export function Header() {
           >
             <Bookmark className="h-5 w-5" />
             {savedBooks.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-[#8FB9A8] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {savedBooks.length}
               </span>
             )}

@@ -91,7 +91,7 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
                 key={i}
                 className={`w-1.5 rounded-full transition-all duration-300 ${
                   isPlayed
-                    ? 'bg-amber-500 dark:bg-amber-400'
+                    ? 'bg-[#8FB9A8] dark:bg-[#8FB9A8]'
                     : 'bg-muted-foreground/15 dark:bg-muted-foreground/10'
                 }`}
                 style={{ height: `${height}%`, minHeight: '4px' }}
@@ -106,11 +106,11 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
           onClick={handleSeek}
         >
           <div
-            className="absolute top-0 left-0 h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-100"
+            className="absolute top-0 left-0 h-full bg-[#8FB9A8] dark:bg-[#8FB9A8] rounded-full transition-all duration-100"
             style={{ width: `${progress}%` }}
           />
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-amber-500 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#8FB9A8] rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
             style={{ left: `${progress}%`, marginLeft: '-8px' }}
           />
         </div>
@@ -138,7 +138,7 @@ export function AudioPlayer({ src }: AudioPlayerProps) {
         <button
           onClick={togglePlay}
           disabled={isLoading}
-          className="w-14 h-14 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-lg shadow-amber-200/50 dark:shadow-amber-900/30 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+          className="w-14 h-14 rounded-2xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white flex items-center justify-center shadow-lg shadow-[#8FB9A8]/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

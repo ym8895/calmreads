@@ -17,16 +17,16 @@ export function SlideCarousel({ slides }: SlideCarouselProps) {
   const prev = () => setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
 
   const slideColors = [
-    'from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20',
-    'from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/20',
-    'from-sky-50 to-cyan-50 dark:from-sky-950/30 dark:to-cyan-950/20',
-    'from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20',
-    'from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20',
-    'from-lime-50 to-green-50 dark:from-lime-950/30 dark:to-green-950/20',
-    'from-fuchsia-50 to-pink-50 dark:from-fuchsia-950/30 dark:to-pink-950/20',
-    'from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20',
-    'from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20',
-    'from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/20',
+    'from-[#D4E6E0] to-[#E8E4D9] dark:from-[#2C4A3F]/30 dark:to-[#344E44]/20',
+    'from-[#E8E4D9] to-[#F0F7F4] dark:from-[#344E44]/30 dark:to-[#2C4A3F]/20',
+    'from-[#D4E6E0] to-[#F0F7F4] dark:from-[#2C4A3F]/30 dark:to-[#243832]/20',
+    'from-[#E8E4D9] to-[#D4E6E0] dark:from-[#344E44]/20 dark:to-[#2C4A3F]/30',
+    'from-[#F0F7F4] to-[#D4E6E0] dark:from-[#243832]/30 dark:to-[#2C4A3F]/20',
+    'from-[#D4E6E0] to-[#F0F7F4] dark:from-[#2C4A3F]/20 dark:to-[#344E44]/20',
+    'from-[#E8E4D9] to-[#F0F7F4] dark:from-[#344E44]/20 dark:to-[#243832]/20',
+    'from-[#D4E6E0] to-[#E8E4D9] dark:from-[#2C4A3F]/30 dark:to-[#344E44]/20',
+    'from-[#F0F7F4] to-[#E8E4D9] dark:from-[#243832]/30 dark:to-[#2C4A3F]/20',
+    'from-[#E8E4D9] to-[#D4E6E0] dark:from-[#344E44]/20 dark:to-[#2C4A3F]/30',
   ];
 
   return (
@@ -43,7 +43,7 @@ export function SlideCarousel({ slides }: SlideCarouselProps) {
               onClick={() => setCurrent(i)}
               className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 i === current
-                  ? 'bg-amber-500 w-6'
+                  ? 'bg-[#8FB9A8] w-6'
                   : 'bg-muted-foreground/20 hover:bg-muted-foreground/40'
               }`}
             />
@@ -84,7 +84,7 @@ export function SlideCarousel({ slides }: SlideCarouselProps) {
                   transition={{ delay: i * 0.1, duration: 0.3 }}
                   className="flex items-start gap-3"
                 >
-                  <span className="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#8FB9A8] mt-2 flex-shrink-0" />
                   <p className="text-sm sm:text-base text-foreground/70 leading-relaxed">
                     {point}
                   </p>
