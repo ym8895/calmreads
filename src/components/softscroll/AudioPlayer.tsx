@@ -55,15 +55,20 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const speakingRef = useRef(false);
   const doSpeakRef = useRef<() => void>(() => {});
 
-  // Load available voices for the dropdown (optional)
+  // Load available voices - with delay for mobile
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
-      setVoices(availableVoices);
-      voicesRef.current = availableVoices;
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+        voicesRef.current = availableVoices;
+      }
     };
     loadVoices();
+    // Mobile needs time to load voices
+    setTimeout(loadVoices, 500);
+    setTimeout(loadVoices, 1500);
     window.speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
 
