@@ -18,10 +18,13 @@ import { SlideCarousel } from './SlideCarousel';
 type AITab = 'summary' | 'story' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, story, setStory, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, story: storyFromStore, setStory, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [localStory, setLocalStory] = useState<AIStory | null>(null);
+
+  const story = currentBook?.id ? localStory : null;
 
   const isSaved = currentBook ? savedBooks.some((b) => b.id === currentBook.id) : false;
 
@@ -87,6 +90,7 @@ export function BookDetailView() {
     try {
       const data = await fetchAIStory(currentBook);
       console.log('Story received:', data);
+      setLocalStory(data);
       setStory(data);
     } catch (err) {
       console.error('Story error:', err);
@@ -357,7 +361,7 @@ export function BookDetailView() {
               )}
 
               {/* Story Tab */}
-              {!isGenerating && activeTab === 'story' && story && (
+              {!isGenerating && activeTab === 'story' && (story || localStory) && (
                 <motion.div
                   key="story-content"
                   initial={{ opacity: 0, y: 10 }}
