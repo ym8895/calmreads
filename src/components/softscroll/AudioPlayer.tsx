@@ -41,8 +41,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const [speed, setSpeed] = useState(1);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  // Use default system voice (works on both desktop and mobile)
-  const selectedVoice = '';
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
   const [isSupported] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !!window.speechSynthesis;
@@ -109,10 +108,13 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     utt.rate = speed;
     utt.volume = isMuted ? 0 : 1;
 
-    // Use best available English voice - Natasha preference on desktop, fallback on mobile
+    // Use selected voice or best available
     const availableVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
-    const voice = availableVoices.find(v => v.name.includes('Natasha'))
-      || availableVoices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en'))
+    const voice = selectedVoice 
+      ? availableVoices.find(v => v.name === selectedVoice)
+      : availableVoices.find(v => v.name.includes('Natasha'))
+      || availableVoices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en') && /Zira|David/i.test(v.name))
+      || availableVoices.find(v => v.lang.startsWith('en') && /Google|Default|Samantha/i.test(v.name))
       || availableVoices.find(v => v.lang.startsWith('en') && !v.name.includes('Off'))
       || availableVoices[0];
     if (voice) utt.voice = voice;
@@ -315,6 +317,18 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
 
       {/* Controls */}
       <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap mb-3">
+        {/* Voice selector */}
+        <select
+          value={selectedVoice}
+          onChange={(e) => setSelectedVoice(e.target.value)}
+          className="text-xs px-2 py-1.5 rounded-lg bg-muted/50 border border-border/30 text-foreground cursor-pointer max-w-[120px]"
+        >
+          <option value="">Auto</option>
+          {voices.map(v => (
+            <option key={v.name} value={v.name}>{v.name.slice(0, 25)}</option>
+          ))}
+        </select>
+
         <button onClick={() => setSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : s === 2 ? 0.75 : 1)}
           className="px-2 py-1 rounded-lg text-xs font-mono text-muted-foreground hover:bg-muted/50 cursor-pointer">
           {speed}x
