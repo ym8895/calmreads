@@ -5,10 +5,13 @@ import { useSoftScrollStore } from '@/lib/store';
 import { BookCard } from './BookCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, RefreshCw, BookX } from 'lucide-react';
+import { RefreshCw, BookX, Search } from 'lucide-react';
+import { useState } from 'react';
 
 export function DiscoverView() {
   const { recommendedBooks, setCurrentView, isLoading, selectedInterests, setRecommendedBooks, setIsLoading } = useSoftScrollStore();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'default' | 'title' | 'year'>('default');
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -23,6 +26,18 @@ export function DiscoverView() {
     }
   };
 
+  // Filter and sort
+  let filteredBooks = recommendedBooks;
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    filteredBooks = filteredBooks.filter(b =>
+      b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) ||
+      b.categories.some(c => c.toLowerCase().includes(q))
+    );
+  }
+  if (sortBy === 'title') filteredBooks = [...filteredBooks].sort((a, b) => a.title.localeCompare(b.title));
+  if (sortBy === 'year') filteredBooks = [...filteredBooks].sort((a, b) => (b.publishedYear || 0) - (a.publishedYear || 0));
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       {/* Header */}
@@ -30,7 +45,7 @@ export function DiscoverView() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        className="mb-6"
       >
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -38,21 +53,12 @@ export function DiscoverView() {
               Recommended for you
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base mt-1">
-              {recommendedBooks.length > 0
-                ? `${recommendedBooks.length} books curated for your interests`
+              {filteredBooks.length > 0
+                ? `${filteredBooks.length} books curated for your interests`
                 : 'Based on your selected topics'}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentView('interests')}
-              className="rounded-xl border-border/60 text-sm"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
-              Change topics
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -65,6 +71,34 @@ export function DiscoverView() {
             </Button>
           </div>
         </div>
+      </motion.div>
+
+      {/* Search & Filter Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="mb-6 flex flex-col sm:flex-row gap-3"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search books, authors, categories..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[#8FB9A8] transition-all"
+          />
+        </div>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          className="px-4 py-2.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#8FB9A8] cursor-pointer"
+        >
+          <option value="default">Default Order</option>
+          <option value="title">Sort by Title</option>
+          <option value="year">Sort by Year</option>
+        </select>
       </motion.div>
 
       {/* Loading State */}
@@ -99,28 +133,30 @@ export function DiscoverView() {
           <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
             <BookX className="w-10 h-10 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">
-            No books found
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No books found</h3>
           <p className="text-muted-foreground text-sm max-w-md mb-6">
             We couldn&apos;t find books for the selected topics. Try choosing different interests or refreshing the page.
           </p>
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            className="rounded-xl"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Try Again
+          <Button onClick={handleRefresh} variant="outline" className="rounded-xl">
+            <RefreshCw className="w-4 h-4 mr-2" />Try Again
           </Button>
         </motion.div>
       )}
 
+      {/* No search results */}
+      {!isLoading && recommendedBooks.length > 0 && filteredBooks.length === 0 && (
+        <div className="text-center py-16">
+          <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No matches</h3>
+          <p className="text-muted-foreground text-sm">Try a different search term</p>
+        </div>
+      )}
+
       {/* Books Grid */}
-      {!isLoading && recommendedBooks.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-          {recommendedBooks.map((book, index) => (
-            <BookCard key={book.id} book={book} index={index} />
+      {!isLoading && filteredBooks.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {filteredBooks.map((book, index) => (
+            <BookCard key={book.id} book={book} index={index} compact />
           ))}
         </div>
       )}

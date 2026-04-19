@@ -3,9 +3,19 @@
 import { motion } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
 import { BookCard } from './BookCard';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
 
 export function SavedBooksView() {
   const { savedBooks, setCurrentView } = useSoftScrollStore();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filtered = searchQuery.trim()
+    ? savedBooks.filter(b =>
+        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.author.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : savedBooks;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
@@ -13,7 +23,7 @@ export function SavedBooksView() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        className="mb-6"
       >
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground/90 tracking-tight">
           Saved Books
@@ -24,6 +34,20 @@ export function SavedBooksView() {
             : 'Your reading list is empty'}
         </p>
       </motion.div>
+
+      {/* Search */}
+      {savedBooks.length > 0 && (
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search saved books..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[#8FB9A8] transition-all"
+          />
+        </div>
+      )}
 
       {savedBooks.length === 0 ? (
         <motion.div
@@ -36,23 +60,21 @@ export function SavedBooksView() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">
-            No saved books yet
-          </h3>
+          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No saved books yet</h3>
           <p className="text-muted-foreground text-sm max-w-md mb-6">
             Start exploring books and save the ones that catch your eye. They&apos;ll appear here for easy access.
           </p>
           <button
             onClick={() => setCurrentView('discover')}
-            className="px-6 py-3 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white font-medium text-sm transition-colors"
+            className="px-6 py-3 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white font-medium text-sm transition-colors cursor-pointer"
           >
             Discover Books
           </button>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-          {savedBooks.map((book, index) => (
-            <BookCard key={book.id} book={book} index={index} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {filtered.map((book, index) => (
+            <BookCard key={book.id} book={book} index={index} compact />
           ))}
         </div>
       )}

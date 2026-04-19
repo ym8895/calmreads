@@ -1,9 +1,12 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeProvider } from 'next-themes';
 import { useSoftScrollStore } from '@/lib/store';
 import { Header } from '@/components/softscroll/Header';
+import { Sidebar } from '@/components/softscroll/Sidebar';
+import { ActionPanel } from '@/components/softscroll/ActionPanel';
 import { InterestPicker } from '@/components/softscroll/InterestPicker';
 import { DiscoverView } from '@/components/softscroll/DiscoverView';
 import { BookDetailView } from '@/components/softscroll/BookDetailView';
@@ -18,11 +21,26 @@ const pageVariants = {
 
 function AppContent() {
   const { currentView } = useSoftScrollStore();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
-      <main>
+    <div className="min-h-screen bg-background text-foreground flex">
+      {/* Left Sidebar */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Mobile Sidebar Toggle */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-xl bg-card/80 backdrop-blur-md border border-border/50 shadow-soft hover:bg-muted/50 transition-colors cursor-pointer"
+      >
+        <svg className="w-5 h-5 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Center Content */}
+      <main className="flex-1 min-w-0 lg:ml-0">
+        <Header />
         <AnimatePresence mode="wait">
           {currentView === 'interests' && (
             <motion.div key="interests" variants={pageVariants} initial="initial" animate="animate" exit="exit">
@@ -51,6 +69,9 @@ function AppContent() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Right Action Panel */}
+      <ActionPanel />
     </div>
   );
 }

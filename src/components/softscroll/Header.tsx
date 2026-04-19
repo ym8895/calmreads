@@ -1,24 +1,22 @@
 'use client';
 
-import { BookOpen, Moon, Sun, Bookmark, Home, ArrowLeft } from 'lucide-react';
+import { BookOpen, Moon, Sun, ArrowLeft, Bookmark } from 'lucide-react';
 import { useSoftScrollStore } from '@/lib/store';
-import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
   const { currentView, setCurrentView, savedBooks } = useSoftScrollStore();
-  const { theme, setTheme } = useTheme();
 
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/50"
+      className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border/50"
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Left: Back button + Logo */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        {/* Left: Back button */}
         <div className="flex items-center gap-3">
           <AnimatePresence mode="wait">
             {currentView !== 'interests' && (
@@ -40,42 +38,30 @@ export function Header() {
             )}
           </AnimatePresence>
 
-          <button
-            onClick={() => setCurrentView('interests')}
-            className="flex items-center gap-2.5 group cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-              <BookOpen className="h-5 w-5 text-[#2C4A3F] dark:text-[#8FB9A8]" />
+          {/* View title */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center">
+              <BookOpen className="h-4 w-4 text-[#2C4A3F] dark:text-[#8FB9A8]" />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-foreground/90">
-              SoftScroll
-            </span>
-          </button>
+            <span className="text-sm font-semibold tracking-tight text-foreground/90 hidden sm:inline">SoftScroll</span>
+          </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-1">
+        {/* Right: Saved count */}
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={() => setCurrentView('saved')}
-            className="rounded-xl hover:bg-muted/80 transition-colors relative"
+            className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
           >
-            <Bookmark className="h-5 w-5" />
+            <Bookmark className="h-4 w-4" />
             {savedBooks.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-[#8FB9A8] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="w-5 h-5 bg-[#8FB9A8] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {savedBooks.length}
               </span>
             )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="rounded-xl hover:bg-muted/80 transition-colors"
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="hidden sm:inline">Saved</span>
           </Button>
         </div>
       </div>

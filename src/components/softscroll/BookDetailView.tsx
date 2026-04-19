@@ -5,17 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
 import { fetchAISummary, fetchAISlides } from '@/lib/api';
 import type { AISummary, Slide } from '@/lib/types';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import {
-  Bookmark, BookmarkCheck, ExternalLink,
-  FileText, Headphones, Presentation,
-  ChevronRight, BookOpen, ShoppingBag,
-  Volume2, Loader2, AlertCircle
+  FileText, Headphones, LayoutGrid,
+  ChevronRight, Volume2, Loader2, AlertCircle
 } from 'lucide-react';
-import { AudioPlayer } from './AudioPlayer';
-import { LayoutGrid } from 'lucide-react';
+import { AudioPlayer, stopGlobalSpeech } from './AudioPlayer';
+import { ArtisticBookCover } from './ArtisticBook';
 import { SlideCarousel } from './SlideCarousel';
 
 type AITab = 'summary' | 'audio' | 'slides';
@@ -27,6 +24,13 @@ export function BookDetailView() {
   const [error, setError] = useState<string | null>(null);
 
   const isSaved = currentBook ? savedBooks.some((b) => b.id === currentBook.id) : false;
+
+  // Stop audio when switching to a different book or view
+  useEffect(() => {
+    return () => {
+      stopGlobalSpeech();
+    };
+  }, []);
 
   const generateSummary = async () => {
     if (!currentBook || summary) return;
@@ -71,8 +75,8 @@ export function BookDetailView() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      {/* Book Hero */}
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      {/* Book Hero - Artistic Layout */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -80,18 +84,14 @@ export function BookDetailView() {
         className="mb-8 sm:mb-10"
       >
         <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
-          {/* Cover */}
+          {/* Artistic Book Cover */}
           <div className="flex-shrink-0 self-center sm:self-start">
-            <div className="w-40 sm:w-48 h-56 sm:h-72 rounded-2xl overflow-hidden shadow-xl shadow-[#8FB9A8]/15 dark:shadow-black/20 bg-muted">
-              <img
-                src={currentBook.coverImage}
-                alt={currentBook.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/placeholder-book.svg';
-                }}
-              />
-            </div>
+            <ArtisticBookCover
+              title={currentBook.title}
+              author={currentBook.author}
+              coverImage={currentBook.coverImage}
+              size="lg"
+            />
           </div>
 
           {/* Info */}
@@ -122,44 +122,25 @@ export function BookDetailView() {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-wrap gap-3 mt-4">
-              <Button
+            {/* Mobile-only actions (on XL+ these appear in right panel) */}
+            <div className="xl:hidden flex flex-wrap gap-3 mt-4">
+              <button
                 onClick={() => toggleSaveBook(currentBook)}
-                variant={isSaved ? 'secondary' : 'outline'}
-                className="rounded-xl"
+                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  isSaved
+                    ? 'bg-[#D4E6E0] dark:bg-[#2C4A3F]/40 text-[#2C4A3F] dark:text-[#8FB9A8]'
+                    : 'bg-muted/40 hover:bg-muted/60 text-muted-foreground'
+                }`}
               >
-                {isSaved ? <BookmarkCheck className="w-4 h-4 mr-2" /> : <Bookmark className="w-4 h-4 mr-2" />}
                 {isSaved ? 'Saved' : 'Save for Later'}
-              </Button>
+              </button>
               {currentBook.isFree && currentBook.fullTextUrl && (
-                <Button
+                <button
                   onClick={() => setCurrentView('reader')}
-                  className="rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer"
                 >
-                  <BookOpen className="w-4 h-4 mr-2" />
                   Read Free
-                </Button>
-              )}
-              {currentBook.previewLink && (
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(currentBook.previewLink, '_blank')}
-                  className="rounded-xl"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Preview
-                </Button>
-              )}
-              {currentBook.buyLink && (
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(currentBook.buyLink, '_blank')}
-                  className="rounded-xl"
-                >
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Buy
-                </Button>
+                </button>
               )}
             </div>
           </div>
@@ -269,9 +250,7 @@ export function BookDetailView() {
                           <span className="w-6 h-6 rounded-full bg-[#D4E6E0] dark:bg-[#2C4A3F] text-[#2C4A3F] dark:text-[#8FB9A8] text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
                             {i + 1}
                           </span>
-                          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                            {idea}
-                          </p>
+                          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{idea}</p>
                         </div>
                       ))}
                     </div>
@@ -285,9 +264,7 @@ export function BookDetailView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {summary.keyTakeaways.map((takeaway, i) => (
                         <div key={i} className="p-3.5 rounded-xl bg-[#E8E4D9]/60 dark:bg-[#2C4A3F]/30 border border-[#D4E6E0] dark:border-[#344E44]">
-                          <p className="text-sm text-foreground/80 leading-relaxed">
-                            {takeaway}
-                          </p>
+                          <p className="text-sm text-foreground/80 leading-relaxed">{takeaway}</p>
                         </div>
                       ))}
                     </div>
@@ -295,7 +272,7 @@ export function BookDetailView() {
                 </motion.div>
               )}
 
-              {/* Audio Tab — Browser-native TTS, always available */}
+              {/* Audio Tab */}
               {!isGenerating && activeTab === 'audio' && summary && (
                 <motion.div
                   key="audio-content"
@@ -308,9 +285,7 @@ export function BookDetailView() {
                     <div className="w-16 h-16 rounded-full bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center mx-auto mb-4">
                       <Volume2 className="w-8 h-8 text-[#7AA896] dark:text-[#8FB9A8]" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground/90">
-                      Audio Overview
-                    </h3>
+                    <h3 className="text-lg font-semibold text-foreground/90">Audio Overview</h3>
                     <p className="text-sm text-muted-foreground mt-1">
                       Listen to a narrated summary of this book using browser text-to-speech
                     </p>

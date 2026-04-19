@@ -5,13 +5,11 @@ import { useSoftScrollStore } from '@/lib/store';
 import { categories } from '@/lib/categories';
 import { Button } from '@/components/ui/button';
 import { Sparkles, ArrowRight } from 'lucide-react';
+import { CategoryBookIcon } from './ArtisticBook';
 
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.02, delayChildren: 0.1 },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.02, delayChildren: 0.1 } },
 };
 
 const item = {
@@ -58,51 +56,31 @@ export function InterestPicker() {
         </p>
       </motion.div>
 
-      {/* Category Grid */}
+      {/* Category Grid - Artistic Book Style */}
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-w-5xl w-full mb-10"
+        className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 max-w-5xl w-full mb-10"
       >
         {categories.map((cat) => {
           const isSelected = selectedInterests.includes(cat.id);
           return (
-            <motion.button
-              key={cat.id}
-              variants={item}
-              whileHover={{ scale: 1.03, y: -2 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => toggleInterest(cat.id)}
-              className={`
-                relative p-3.5 sm:p-4 rounded-2xl border-2 text-left transition-all duration-300
-                cursor-pointer group
-                ${isSelected
-                  ? 'border-[#8FB9A8] dark:border-[#7AA896] bg-[#D4E6E0]/60 dark:bg-[#2C4A3F]/40 shadow-sm shadow-[#8FB9A8]/20'
-                  : 'border-border/60 bg-card hover:border-border hover:bg-muted/30'
-                }
-              `}
-            >
-              {isSelected && (
-                <motion.div
-                  layoutId="selected-indicator"
-                  className="absolute top-2 right-2 w-5 h-5 bg-[#8FB9A8] rounded-full flex items-center justify-center"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                >
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </motion.div>
-              )}
-              <span className="text-xl sm:text-2xl mb-1.5 block">{cat.emoji}</span>
-              <span className={`text-xs sm:text-sm font-medium block ${
-                isSelected ? 'text-[#2C4A3F] dark:text-[#8FB9A8]' : 'text-foreground/80'
+            <motion.div key={cat.id} variants={item} className="flex flex-col items-center gap-1.5">
+              <CategoryBookIcon
+                categoryId={cat.id}
+                categoryName={cat.name}
+                emoji={cat.emoji}
+                isSelected={isSelected}
+                onClick={() => toggleInterest(cat.id)}
+                size="md"
+              />
+              <span className={`text-[10px] sm:text-xs font-medium text-center transition-colors ${
+                isSelected ? 'text-[#2C4A3F] dark:text-[#8FB9A8]' : 'text-muted-foreground'
               }`}>
                 {cat.name}
               </span>
-            </motion.button>
+            </motion.div>
           );
         })}
       </motion.div>

@@ -3,14 +3,16 @@
 import { motion } from 'framer-motion';
 import type { Book } from '@/lib/types';
 import { useSoftScrollStore } from '@/lib/store';
-import { Bookmark, BookmarkCheck, ExternalLink } from 'lucide-react';
+import { Bookmark, BookmarkCheck } from 'lucide-react';
+import { ArtisticBookCover } from './ArtisticBook';
 
 interface BookCardProps {
   book: Book;
   index: number;
+  compact?: boolean;
 }
 
-export function BookCard({ book, index }: BookCardProps) {
+export function BookCard({ book, index, compact = false }: BookCardProps) {
   const { setCurrentBook, setCurrentView, savedBooks, toggleSaveBook } = useSoftScrollStore();
   const isSaved = savedBooks.some((b) => b.id === book.id);
 
@@ -31,57 +33,80 @@ export function BookCard({ book, index }: BookCardProps) {
         onClick={handleClick}
         className="cursor-pointer bg-card border border-border/50 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-[#8FB9A8]/10 hover:border-[#8FB9A8]/40"
       >
-        <div className="flex gap-4 p-4 sm:p-5">
-          {/* Cover Image */}
-          <div className="flex-shrink-0 w-20 sm:w-24 h-28 sm:h-36 rounded-xl overflow-hidden bg-muted shadow-md">
-            <img
-              src={book.coverImage}
-              alt={book.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/placeholder-book.svg';
-              }}
+        {compact ? (
+          /* Compact card - vertical layout with artistic cover */
+          <div className="flex flex-col items-center p-4">
+            <ArtisticBookCover
+              title={book.title}
+              author={book.author}
+              coverImage={book.coverImage}
+              size="md"
             />
-          </div>
-
-          {/* Book Info */}
-          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-            <div>
-              <h3 className="font-semibold text-sm sm:text-base text-foreground/90 line-clamp-2 group-hover:text-[#7AA896] dark:group-hover:text-[#8FB9A8] transition-colors">
+            <div className="mt-3 text-center w-full">
+              <h3 className="font-semibold text-sm text-foreground/90 line-clamp-2 group-hover:text-[#7AA896] dark:group-hover:text-[#8FB9A8] transition-colors">
                 {book.title}
               </h3>
-              <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-                {book.author}
-              </p>
-              {book.categories.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {book.categories.slice(0, 2).map((cat, i) => (
-                    <span
-                      key={i}
-                      className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
-                    >
-                      {cat}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <p className="text-muted-foreground text-xs mt-1">{book.author}</p>
             </div>
-
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-2 mt-2">
               {book.isFree && (
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
-                  Free to read
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
+                  Free
                 </span>
               )}
               {book.publishedYear && (
-                <span className="text-xs text-muted-foreground">
-                  {book.publishedYear}
-                </span>
+                <span className="text-[10px] text-muted-foreground">{book.publishedYear}</span>
               )}
             </div>
           </div>
-        </div>
+        ) : (
+          /* Standard card - horizontal layout */
+          <div className="flex gap-4 p-4 sm:p-5">
+            <ArtisticBookCover
+              title={book.title}
+              author={book.author}
+              coverImage={book.coverImage}
+              size="sm"
+              className="flex-shrink-0"
+            />
+
+            <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+              <div>
+                <h3 className="font-semibold text-sm sm:text-base text-foreground/90 line-clamp-2 group-hover:text-[#7AA896] dark:group-hover:text-[#8FB9A8] transition-colors">
+                  {book.title}
+                </h3>
+                <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                  {book.author}
+                </p>
+                {book.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {book.categories.slice(0, 2).map((cat, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                      >
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between mt-2">
+                {book.isFree && (
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
+                    Free to read
+                  </span>
+                )}
+                {book.publishedYear && (
+                  <span className="text-xs text-muted-foreground">
+                    {book.publishedYear}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action Bar */}
         <div className="flex items-center justify-between px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
@@ -103,16 +128,6 @@ export function BookCard({ book, index }: BookCardProps) {
                 <span>Save</span>
               </>
             )}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(book.previewLink, '_blank');
-            }}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Preview</span>
           </button>
         </div>
       </div>

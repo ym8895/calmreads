@@ -7,6 +7,21 @@ interface AudioPlayerProps {
   text: string;
 }
 
+// Global speech controller to manage cross-component state
+let globalSpeechActive = false;
+let globalCleanupFn: (() => void) | null = null;
+
+export function stopGlobalSpeech() {
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  globalSpeechActive = false;
+  if (globalCleanupFn) {
+    globalCleanupFn();
+    globalCleanupFn = null;
+  }
+}
+
 export function AudioPlayer({ text }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -18,17 +33,16 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Check for Web Speech API support
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       setIsSupported(false);
     }
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount — CRITICAL: stop speech when leaving the view
   useEffect(() => {
     return () => {
-      window.speechSynthesis?.cancel();
+      stopGlobalSpeech();
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, []);
@@ -40,6 +54,23 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     }
   }, []);
 
+  const startProgressTracking = useCallback(() => {
+    stopProgressTracking();
+    progressIntervalRef.current = setInterval(() => {
+      setCurrentCharIndex((prev) => {
+        const next = prev + speed * 12;
+        if (next >= text.length) return text.length;
+        return next;
+      });
+    }, 100);
+    globalCleanupFn = () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, [text, speed, stopProgressTracking]);
+
   const handlePlay = useCallback(() => {
     if (!text || !isSupported) return;
 
@@ -48,20 +79,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       window.speechSynthesis.resume();
       setIsPaused(false);
       setIsPlaying(true);
-
-      // Resume progress tracking
-      progressIntervalRef.current = setInterval(() => {
-        setCurrentCharIndex((prev) => {
-          const next = prev + speed * 15;
-          if (next >= text.length) {
-            stopProgressTracking();
-            setIsPlaying(false);
-            return text.length;
-          }
-          return next;
-        });
-        setProgress(0); // Will be recalculated
-      }, 100);
+      startProgressTracking();
       return;
     }
 
@@ -69,7 +87,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     window.speechSynthesis.cancel();
     stopProgressTracking();
 
-    // Split text into chunks (speechSynthesis has limits ~200 chars)
     const chunks = splitTextIntoChunks(text, 180);
     let charOffset = 0;
     let chunkIndex = 0;
@@ -77,6 +94,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     const speakChunk = () => {
       if (chunkIndex >= chunks.length) {
         setIsPlaying(false);
+        globalSpeechActive = false;
         stopProgressTracking();
         window.speechSynthesis.cancel();
         return;
@@ -87,7 +105,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       utterance.pitch = 1;
       utterance.volume = isMuted ? 0 : 1;
 
-      // Try to pick a good voice
       const voices = window.speechSynthesis.getVoices();
       const preferredVoice = voices.find(
         (v) => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Daniel'))
@@ -103,22 +120,36 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
         chunkIndex++;
         setCurrentCharIndex(charOffset);
         if (chunkIndex < chunks.length) {
-          // Small gap between chunks
           setTimeout(speakChunk, 50);
         } else {
           setIsPlaying(false);
+          globalSpeechActive = false;
           stopProgressTracking();
         }
       };
 
       utterance.onerror = (e) => {
-        if (e.error !== 'canceled') {
-          console.error('Speech error:', e.error);
+        // Gracefully handle all speech errors including "interrupted" and "canceled"
+        // "canceled" is expected when we manually call speechSynthesis.cancel()
+        // "interrupted" happens when a new utterance interrupts an ongoing one
+        console.warn('Speech event:', e.error);
+        if (e.error === 'interrupted') {
+          // Another speech started or user navigated away — silently continue
+          chunkIndex++;
+          if (chunkIndex < chunks.length) {
+            setTimeout(speakChunk, 200);
+          } else {
+            setIsPlaying(false);
+            globalSpeechActive = false;
+            stopProgressTracking();
+          }
+        } else if (e.error !== 'canceled') {
           chunkIndex++;
           if (chunkIndex < chunks.length) {
             setTimeout(speakChunk, 100);
           } else {
             setIsPlaying(false);
+            globalSpeechActive = false;
             stopProgressTracking();
           }
         }
@@ -131,29 +162,17 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     setIsPlaying(true);
     setIsPaused(false);
     setCurrentCharIndex(0);
+    globalSpeechActive = true;
 
-    // Start progress tracking
-    progressIntervalRef.current = setInterval(() => {
-      setCurrentCharIndex((prev) => {
-        const next = prev + speed * 12;
-        if (next >= text.length) return text.length;
-        return next;
-      });
-    }, 100);
+    startProgressTracking();
 
-    // Load voices and start speaking
-    const startSpeaking = () => {
-      speakChunk();
-    };
-
+    const startSpeaking = () => speakChunk();
     if (window.speechSynthesis.getVoices().length > 0) {
       startSpeaking();
     } else {
-      window.speechSynthesis.onvoiceschanged = () => {
-        startSpeaking();
-      };
+      window.speechSynthesis.onvoiceschanged = () => startSpeaking();
     }
-  }, [text, isSupported, isPaused, currentCharIndex, speed, isMuted, stopProgressTracking]);
+  }, [text, isSupported, isPaused, currentCharIndex, speed, isMuted, stopProgressTracking, startProgressTracking]);
 
   const handlePause = useCallback(() => {
     window.speechSynthesis.pause();
@@ -167,36 +186,36 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     setIsPlaying(false);
     setIsPaused(false);
     setCurrentCharIndex(0);
+    globalSpeechActive = false;
     stopProgressTracking();
   }, [stopProgressTracking]);
 
   const handleSkip = useCallback((direction: 'back' | 'forward') => {
-    const jumpAmount = text.length * 0.1; // 10% jump
+    const jumpAmount = text.length * 0.1;
     const newIndex = direction === 'back'
       ? Math.max(0, currentCharIndex - jumpAmount)
       : Math.min(text.length, currentCharIndex + jumpAmount);
     setCurrentCharIndex(newIndex);
 
-    // Restart from new position
     window.speechSynthesis.cancel();
     stopProgressTracking();
     setIsPlaying(false);
     setIsPaused(false);
 
-    // Update the text to start from the new position
     const remainingText = text.slice(Math.floor(newIndex));
     if (remainingText.length > 10) {
       const chunks = splitTextIntoChunks(remainingText, 180);
-      let chunkIndex = 0;
+      let chunkIdx = 0;
 
       const speakChunk = () => {
-        if (chunkIndex >= chunks.length) {
+        if (chunkIdx >= chunks.length) {
           setIsPlaying(false);
+          globalSpeechActive = false;
           stopProgressTracking();
           return;
         }
 
-        const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+        const utterance = new SpeechSynthesisUtterance(chunks[chunkIdx]);
         utterance.rate = speed;
         utterance.volume = isMuted ? 0 : 1;
 
@@ -207,20 +226,23 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
         if (preferredVoice) utterance.voice = preferredVoice;
 
         utterance.onend = () => {
-          chunkIndex++;
-          setCurrentCharIndex((prev) => Math.min(text.length, prev + chunks[chunkIndex - 1]?.length || 0));
-          if (chunkIndex < chunks.length) {
+          chunkIdx++;
+          setCurrentCharIndex((prev) => Math.min(text.length, prev + (chunks[chunkIdx - 1]?.length || 0)));
+          if (chunkIdx < chunks.length) {
             setTimeout(speakChunk, 50);
           } else {
             setIsPlaying(false);
+            globalSpeechActive = false;
             stopProgressTracking();
           }
         };
 
-        utterance.onerror = () => {
-          chunkIndex++;
-          if (chunkIndex < chunks.length) setTimeout(speakChunk, 100);
-          else { setIsPlaying(false); stopProgressTracking(); }
+        utterance.onerror = (e) => {
+          if (e.error === 'interrupted' || e.error !== 'canceled') {
+            chunkIdx++;
+            if (chunkIdx < chunks.length) setTimeout(speakChunk, 200);
+            else { setIsPlaying(false); globalSpeechActive = false; stopProgressTracking(); }
+          }
         };
 
         window.speechSynthesis.speak(utterance);
@@ -228,23 +250,15 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
 
       setIsPlaying(true);
       setIsPaused(false);
-
-      progressIntervalRef.current = setInterval(() => {
-        setCurrentCharIndex((prev) => {
-          const next = prev + speed * 12;
-          if (next >= text.length) return text.length;
-          return next;
-        });
-      }, 100);
-
+      globalSpeechActive = true;
+      startProgressTracking();
       speakChunk();
     }
-  }, [text, currentCharIndex, speed, isMuted, stopProgressTracking]);
+  }, [text, currentCharIndex, speed, isMuted, stopProgressTracking, startProgressTracking]);
 
   const progressPercent = text.length > 0 ? (currentCharIndex / text.length) * 100 : 0;
 
   const formatTime = () => {
-    // Estimate: ~150 words/min, ~5 chars/word average
     const charsPerMin = 750 * speed;
     const elapsed = currentCharIndex / charsPerMin;
     const remaining = (text.length - currentCharIndex) / charsPerMin;
@@ -281,9 +295,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
               <div
                 key={i}
                 className={`w-[5px] rounded-full transition-all duration-200 ${
-                  isPlayed
-                    ? 'bg-[#8FB9A8]'
-                    : 'bg-muted-foreground/12'
+                  isPlayed ? 'bg-[#8FB9A8]' : 'bg-muted-foreground/12'
                 }`}
                 style={{ height: `${height}%`, minHeight: '6px' }}
               />
@@ -292,7 +304,8 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
         </div>
 
         {/* Progress Bar */}
-        <div className="relative h-1.5 bg-muted rounded-full cursor-pointer group"
+        <div
+          className="relative h-1.5 bg-muted rounded-full cursor-pointer group"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
@@ -321,7 +334,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
 
       {/* Controls */}
       <div className="flex items-center justify-center gap-3 sm:gap-5">
-        {/* Speed Control */}
         <button
           onClick={() => setSpeed(speed === 1 ? 1.5 : speed === 1.5 ? 2 : speed === 2 ? 0.75 : 1)}
           className="px-2.5 py-1 rounded-lg text-xs font-mono text-muted-foreground hover:bg-muted/50 transition-colors cursor-pointer"
@@ -329,7 +341,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
           {speed}x
         </button>
 
-        {/* Skip Back */}
         <button
           onClick={() => handleSkip('back')}
           className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
@@ -337,7 +348,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
           <SkipBack className="w-5 h-5" />
         </button>
 
-        {/* Mute */}
         <button
           onClick={() => setIsMuted(!isMuted)}
           className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
@@ -345,19 +355,13 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </button>
 
-        {/* Play/Pause */}
         <button
           onClick={isPlaying ? handlePause : handlePlay}
           className="w-14 h-14 rounded-2xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white flex items-center justify-center shadow-lg shadow-[#8FB9A8]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
-          {isPlaying ? (
-            <Pause className="w-6 h-6" />
-          ) : (
-            <Play className="w-6 h-6 ml-0.5" />
-          )}
+          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
         </button>
 
-        {/* Stop */}
         <button
           onClick={handleStop}
           className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
@@ -367,7 +371,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
           </svg>
         </button>
 
-        {/* Skip Forward */}
         <button
           onClick={() => handleSkip('forward')}
           className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
@@ -375,7 +378,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
           <SkipForward className="w-5 h-5" />
         </button>
 
-        {/* Spacer for centering */}
         <div className="w-[52px]" />
       </div>
     </div>
@@ -392,7 +394,6 @@ function splitTextIntoChunks(text: string, maxLen: number): string[] {
       break;
     }
 
-    // Find a good split point (period, comma, space)
     let splitAt = maxLen;
     const lastPeriod = remaining.lastIndexOf('.', maxLen);
     const lastComma = remaining.lastIndexOf(',', maxLen);
