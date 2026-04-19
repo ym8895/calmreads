@@ -65,6 +65,7 @@ Return ONLY JSON array: [{"title":"...","points":["...","..."]}, ...]`;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const completion = await zai.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
           messages: [
             { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
             { role: 'user', content: prompt },

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
-import { fetchAISummary, fetchAISlides } from '@/lib/api';
+import { fetchAISummary, fetchAISlides, fetchAIAudio } from '@/lib/api';
 import type { AISummary, Slide } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
@@ -11,14 +11,14 @@ import {
   FileText, Headphones, LayoutGrid,
   ChevronRight, Volume2, Loader2, AlertCircle
 } from 'lucide-react';
-import { AudioPlayer, stopGlobalSpeech } from './AudioPlayer';
+import { AudioPlayer, stopGlobalSpeech, AIAudioPlayer } from './AudioPlayer';
 import { ArtisticBookCover } from './ArtisticBook';
 import { SlideCarousel } from './SlideCarousel';
 
 type AITab = 'summary' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,19 +62,34 @@ export function BookDetailView() {
     }
   };
 
+  const generateAudio = async () => {
+    if (!summary || audioUrl) return;
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const data = await fetchAIAudio(summary);
+      if (data.useBrowserTts) {
+        setAudioUrl(data.text || '');
+      } else {
+        setAudioUrl(data.audioUrl || '');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
-    // Audio tab uses browser-native TTS — no API call needed
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    else if (activeTab === 'audio' && summary) generateAudio();
   }, [activeTab, currentBook?.id]);
 
-  // Also regenerate if tab changes while on a new book
   useEffect(() => {
     if (activeTab === 'summary' && currentBook && !summary) {
       generateSummary();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, summary, currentBook?.id]);
 
   if (!currentBook) return null;
@@ -308,10 +323,18 @@ export function BookDetailView() {
                     </div>
                     <h3 className="text-lg font-semibold text-foreground/90">Audio Overview</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Listen to a narrated summary of this book using browser text-to-speech
+                      Listen to an audio summary of this book
                     </p>
                   </div>
-                  <AudioPlayer text={summary.fullText} />
+                  {audioUrl ? (
+                    audioUrl.startsWith('data:') ? (
+                      <AIAudioPlayer audioUrl={audioUrl} />
+                    ) : (
+                      <AudioPlayer text={audioUrl} />
+                    )
+                  ) : (
+                    <p className="text-center text-muted-foreground">No audio available</p>
+                  )}
                 </motion.div>
               )}
 

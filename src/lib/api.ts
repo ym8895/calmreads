@@ -53,13 +53,12 @@ export async function fetchAISlides(summary: AISummary, book?: Book): Promise<Sl
   return res.json();
 }
 
-export async function fetchAIAudio(summary: AISummary): Promise<string> {
+export async function fetchAIAudio(summary: AISummary): Promise<{ useBrowserTts: boolean; text?: string; audioUrl?: string }> {
   const res = await fetch(`${API_BASE}/ai/audio`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: summary.fullText }),
   });
   if (!res.ok) throw new Error('Failed to generate audio');
-  const data = await res.json();
-  return data.audioUrl;
+  return res.json();
 }

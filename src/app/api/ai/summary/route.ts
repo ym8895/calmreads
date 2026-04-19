@@ -61,6 +61,7 @@ JSON only, no markdown.`;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const completion = await zai.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
           messages: [
             { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
             { role: 'user', content: prompt },

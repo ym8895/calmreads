@@ -39,6 +39,9 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const selectedVoice = 'Microsoft Natasha - English (United States)';
   const [isSupported] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !!window.speechSynthesis;
@@ -50,6 +53,19 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const charOffsetRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const speakingRef = useRef(false);
+  const doSpeakRef = useRef<() => void>(() => {});
+
+  // Load available voices for the dropdown (optional)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      voicesRef.current = availableVoices;
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -92,9 +108,12 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     utt.rate = speed;
     utt.volume = isMuted ? 0 : 1;
 
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find(v => v.lang.startsWith('en') && /google|natural|samantha|daniel/i.test(v.name))
-      || voices.find(v => v.lang.startsWith('en'));
+    // Use Microsoft Natasha voice - hardcoded
+    const availableVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
+    const voice = availableVoices.find(v => v.name === selectedVoice)
+      || availableVoices.find(v => v.name.includes('Natasha'))
+      || availableVoices.find(v => v.lang.startsWith('en'))
+      || availableVoices[0];
     if (voice) utt.voice = voice;
 
     utt.onstart = () => {
@@ -107,7 +126,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       charOffsetRef.current += chunks[idx].length;
       chunkIdxRef.current = idx + 1;
       setProgress(charOffsetRef.current);
-      setTimeout(() => doSpeak(), 30);
+      setTimeout(() => doSpeakRef.current(), 30);
     };
 
     utt.onerror = (e) => {
@@ -126,7 +145,11 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       if (mountedRef.current) setStatus('idle');
       clearTimer();
     }
-  }, [speed, isMuted, clearTimer]);
+  }, [speed, isMuted, clearTimer, doSpeakRef, selectedVoice]);
+
+  useEffect(() => {
+    doSpeakRef.current = doSpeak;
+  }, [doSpeak]);
 
   const handlePlay = useCallback(() => {
     if (!text || !mountedRef.current) return;
@@ -290,38 +313,161 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center justify-center gap-3 sm:gap-5">
+      <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap mb-3">
         <button onClick={() => setSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : s === 2 ? 0.75 : 1)}
-          className="px-2.5 py-1 rounded-lg text-xs font-mono text-muted-foreground hover:bg-muted/50 cursor-pointer">
+          className="px-2 py-1 rounded-lg text-xs font-mono text-muted-foreground hover:bg-muted/50 cursor-pointer">
           {speed}x
         </button>
 
         <button onClick={() => handleSkip('back')}
-          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
-          <SkipBack className="w-5 h-5" />
+          className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
+          <SkipBack className="w-4 h-4" />
         </button>
 
         <button onClick={() => setIsMuted(m => !m)}
-          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
         </button>
 
         <button onClick={status === 'playing' ? handlePause : handlePlay}
-          className="w-14 h-14 rounded-2xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white flex items-center justify-center shadow-lg shadow-[#8FB9A8]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer">
-          {status === 'playing' ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+          className="w-12 h-12 rounded-2xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white flex items-center justify-center shadow-lg shadow-[#8FB9A8]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer">
+          {status === 'playing' ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
         </button>
 
+        <button onClick={handleStop}
+          className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+        </button>
+
+        <button onClick={() => handleSkip('forward')}
+          className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
+          <SkipForward className="w-4 h-4" />
+        </button>
+
+        <div className="w-[52px]" />
+      </div>
+    </div>
+  );
+}
+
+interface AIAudioPlayerProps {
+  audioUrl: string;
+}
+
+export function AIAudioPlayer({ audioUrl }: AIAudioPlayerProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'paused'>('idle');
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    if (!audioUrl) return;
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+
+    audio.addEventListener('loadedmetadata', () => {
+      setDuration(audio.duration);
+      setStatus('idle');
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      setProgress(audio.currentTime);
+    });
+
+    audio.addEventListener('ended', () => {
+      setStatus('idle');
+      setProgress(0);
+    });
+
+    audio.addEventListener('play', () => setStatus('playing'));
+    audio.addEventListener('pause', () => setStatus('paused'));
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, [audioUrl]);
+
+  const handlePlay = () => {
+    if (!audioRef.current) return;
+    audioRef.current.play();
+  };
+
+  const handlePause = () => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+  };
+
+  const handleStop = () => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    setProgress(0);
+  };
+
+  const progressPct = duration > 0 ? (progress / duration) * 100 : 0;
+
+  const fmtTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${mins}:${s.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="bg-card border border-border/50 rounded-2xl p-5 sm:p-6">
+      <div className="text-center mb-4">
+        <span className={`inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full ${
+          status === 'playing' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+          status === 'paused' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+          'bg-muted text-muted-foreground'
+        }`}>
+          {status === 'playing' && <><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Playing</>}
+          {status === 'paused' && <><span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> Paused</>}
+          {status === 'idle' && <>Ready</>}
+        </span>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex items-end justify-center gap-[3px] h-14 mb-4 px-2">
+          {Array.from({ length: 50 }).map((_, i) => {
+            const h = Math.sin(i * 0.3) * 30 + Math.cos(i * 0.15) * 20 + 40;
+            const played = (i / 50) * 100 < progressPct;
+            return (
+              <div key={i}
+                className={`w-[5px] rounded-full transition-all duration-200 ${played ? 'bg-[#8FB9A8]' : 'bg-muted-foreground/12'}`}
+                style={{ height: `${h}%`, minHeight: '6px' }}
+              />
+            );
+          })}
+        </div>
+
+        <div className="relative h-1.5 bg-muted rounded-full">
+          <div className="absolute top-0 left-0 h-full bg-[#8FB9A8] rounded-full transition-all duration-150"
+            style={{ width: `${progressPct}%` }} />
+        </div>
+
+        <div className="flex justify-between mt-2">
+          <span className="text-xs text-muted-foreground font-mono">{fmtTime(progress)}</span>
+          <span className="text-xs text-muted-foreground font-mono">-{fmtTime(duration - progress)}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-5">
         <button onClick={handleStop}
           className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
         </button>
 
-        <button onClick={() => handleSkip('forward')}
-          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer">
-          <SkipForward className="w-5 h-5" />
+        <button onClick={status === 'playing' ? handlePause : handlePlay}
+          className="w-14 h-14 rounded-2xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white flex items-center justify-center shadow-lg shadow-[#8FB9A8]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer">
+          {status === 'playing' ? (
+            <Pause className="w-6 h-6" />
+          ) : (
+            <Play className="w-6 h-6 ml-0.5" />
+          )}
         </button>
 
-        <div className="w-[52px]" />
+        <div className="w-9" />
       </div>
     </div>
   );

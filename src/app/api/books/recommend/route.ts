@@ -13,7 +13,7 @@ function getCacheKey(interests: string[]): string {
 async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
   try {
     const res = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=key,title,author_name,first_publish_year,subject,edition_key,cover_i`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=100&fields=key,title,author_name,first_publish_year,subject,edition_key,cover_i`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
@@ -41,7 +41,7 @@ async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
 async function fetchFromGoogleBooks(query: string): Promise<Book[]> {
   try {
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=100`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
@@ -120,9 +120,9 @@ export async function POST(request: NextRequest) {
     await Promise.all(fetchPromises);
 
     const uniqueBooks = deduplicateBooks(allBooks);
-    // Shuffle slightly to add variety, then cap at 60
+    // Shuffle slightly to add variety, then cap at 100
     const shuffled = uniqueBooks.sort(() => Math.random() - 0.5);
-    const topBooks = shuffled.slice(0, 60);
+    const topBooks = shuffled.slice(0, 100);
 
     BOOK_CACHE.set(cacheKey, { data: topBooks, timestamp: Date.now() });
 
