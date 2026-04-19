@@ -110,10 +110,10 @@ export function BookDetailView() {
   if (!currentBook) return null;
 
   const tabs: { id: AITab; label: string; icon: React.ReactNode }[] = [
-    { id: 'summary', label: 'AI Summary', icon: <FileText className="w-4 h-4" /> },
-    { id: 'story', label: 'Story', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'slides', label: 'Book Slides', icon: <LayoutGrid className="w-4 h-4" /> },
+    { id: 'summary', label: 'Summary', icon: <FileText className="w-4 h-4" /> },
+    { id: 'slides', label: 'Slides', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'audio', label: 'Audio', icon: <Headphones className="w-4 h-4" /> },
+    { id: 'story', label: 'Story (15 min)', icon: <BookOpen className="w-4 h-4" /> },
   ];
 
   return (
