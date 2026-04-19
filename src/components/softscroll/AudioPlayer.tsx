@@ -153,7 +153,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       if (mountedRef.current) setStatus('idle');
       clearTimer();
     }
-  }, [speed, isMuted, clearTimer, doSpeakRef, selectedVoice]);
+  }, [speed, isMuted, clearTimer, doSpeakRef, selectedVoice, voicesRef.current]);
 
   useEffect(() => {
     doSpeakRef.current = doSpeak;
