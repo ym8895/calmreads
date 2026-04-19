@@ -81,13 +81,15 @@ export function BookDetailView() {
   };
 
   const generateStory = async () => {
-    if (!currentBook || story) return;
-    setIsGenerating(true);
+    if (!currentBook) return;
+    console.log('Generating story for:', currentBook.title);
     setError(null);
     try {
       const data = await fetchAIStory(currentBook);
+      console.log('Story received:', data);
       setStory(data);
     } catch (err) {
+      console.error('Story error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
     } finally {
       setIsGenerating(false);
