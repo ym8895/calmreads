@@ -31,7 +31,7 @@ export function SlideCarousel({ slides }: SlideCarouselProps) {
 
   return (
     <div className="space-y-4">
-      {/* Slide Counter */}
+      {/* Slide Counter + Dots */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm text-muted-foreground">
           Slide {current + 1} of {slides.length}
@@ -60,12 +60,15 @@ export function SlideCarousel({ slides }: SlideCarouselProps) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className={`bg-gradient-to-br ${slideColors[current % slideColors.length]} rounded-2xl p-6 sm:p-10 min-h-[320px] flex flex-col justify-center border border-border/30`}
+            className={`bg-gradient-to-br ${slideColors[current % slideColors.length]} rounded-2xl p-6 sm:p-10 min-h-[420px] sm:min-h-[480px] flex flex-col border border-border/30`}
           >
             {/* Slide Number Badge */}
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <span className="text-xs font-medium px-3 py-1 rounded-full bg-white/60 dark:bg-black/20 text-muted-foreground">
                 {current + 1} / {slides.length}
+              </span>
+              <span className="text-xs text-muted-foreground/60">
+                {slides[current].points.length} points
               </span>
             </div>
 
@@ -74,14 +77,14 @@ export function SlideCarousel({ slides }: SlideCarouselProps) {
               {slides[current].title}
             </h3>
 
-            {/* Points */}
-            <div className="space-y-3">
+            {/* Points — scrollable if many */}
+            <div className="flex-1 overflow-y-auto max-h-[320px] sm:max-h-[360px] pr-2 space-y-3">
               {slides[current].points.map((point, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: 15 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.3 }}
+                  transition={{ delay: i * 0.05, duration: 0.2 }}
                   className="flex items-start gap-3"
                 >
                   <span className="w-2 h-2 rounded-full bg-[#8FB9A8] mt-2 flex-shrink-0" />

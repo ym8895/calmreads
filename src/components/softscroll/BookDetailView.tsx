@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
-import { fetchAISummary, fetchAISlides, fetchAIAudio } from '@/lib/api';
+import { fetchAISummary, fetchAISlides } from '@/lib/api';
 import type { AISummary, Slide } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,12 +15,13 @@ import {
   Volume2, Loader2, AlertCircle
 } from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
+import { LayoutGrid } from 'lucide-react';
 import { SlideCarousel } from './SlideCarousel';
 
 type AITab = 'summary' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, audioUrl, setAudioUrl, setCurrentView } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,32 +56,18 @@ export function BookDetailView() {
     }
   };
 
-  const generateAudio = async () => {
-    if (!summary || audioUrl) return;
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const url = await fetchAIAudio(summary);
-      setAudioUrl(url);
-    } catch {
-      setError('Failed to generate audio. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   useEffect(() => {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
-    else if (activeTab === 'audio' && summary) generateAudio();
+    // Audio tab uses browser-native TTS — no API call needed
   }, [activeTab]);
 
   if (!currentBook) return null;
 
   const tabs: { id: AITab; label: string; icon: React.ReactNode }[] = [
     { id: 'summary', label: 'AI Summary', icon: <FileText className="w-4 h-4" /> },
+    { id: 'slides', label: 'Book Slides', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'audio', label: 'Audio Overview', icon: <Headphones className="w-4 h-4" /> },
-    { id: 'slides', label: 'Visual Summary', icon: <Presentation className="w-4 h-4" /> },
   ];
 
   return (
@@ -242,8 +229,8 @@ export function BookDetailView() {
                   <Loader2 className="w-10 h-10 text-[#8FB9A8] animate-spin mb-4" />
                   <p className="text-muted-foreground text-sm">
                     {activeTab === 'summary' && 'Generating AI summary...'}
-                    {activeTab === 'slides' && 'Creating visual summary...'}
-                    {activeTab === 'audio' && 'Generating audio overview...'}
+                    {activeTab === 'slides' && 'Creating book slides...'}
+                    {activeTab === 'audio' && 'Preparing audio player...'}
                   </p>
                   <p className="text-muted-foreground/60 text-xs mt-2">
                     This may take a moment
@@ -308,8 +295,8 @@ export function BookDetailView() {
                 </motion.div>
               )}
 
-              {/* Audio Tab */}
-              {!isGenerating && activeTab === 'audio' && audioUrl && (
+              {/* Audio Tab — Browser-native TTS, always available */}
+              {!isGenerating && activeTab === 'audio' && summary && (
                 <motion.div
                   key="audio-content"
                   initial={{ opacity: 0, y: 10 }}
@@ -325,10 +312,10 @@ export function BookDetailView() {
                       Audio Overview
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Listen to a ~10 minute summary of this book
+                      Listen to a narrated summary of this book using browser text-to-speech
                     </p>
                   </div>
-                  <AudioPlayer src={audioUrl} />
+                  <AudioPlayer text={summary.fullText} />
                 </motion.div>
               )}
 
