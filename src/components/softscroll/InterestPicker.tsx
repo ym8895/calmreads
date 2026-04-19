@@ -61,7 +61,7 @@ export function InterestPicker() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 max-w-5xl w-full mb-10"
+        className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-7 gap-3 sm:gap-4 max-w-6xl w-full mb-10"
       >
         {categories.map((cat) => {
           const isSelected = selectedInterests.includes(cat.id);
