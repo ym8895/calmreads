@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
-import { getAI } from '@/lib/ai-client';
+import ZAI from 'z-ai-web-dev-sdk';
 
 function tryParseJSON(content: string): AISummary | null {
   let cleaned = content.trim();
@@ -9,86 +9,54 @@ function tryParseJSON(content: string): AISummary | null {
   }
   try {
     const parsed = JSON.parse(cleaned);
-    if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
-      return parsed as AISummary;
-    }
+    if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) return parsed as AISummary;
   } catch {}
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
+  const m = cleaned.match(/\{[\s\S]*\}/);
+  if (m) {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
-        return parsed as AISummary;
-      }
+      const parsed = JSON.parse(m[0]);
+      if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) return parsed as AISummary;
     } catch {}
   }
   try {
     const fixed = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
     const parsed = JSON.parse(fixed);
-    if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
-      return parsed as AISummary;
-    }
+    if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) return parsed as AISummary;
   } catch {}
   return null;
 }
 
-function buildSummaryFromRawText(rawText: string, title: string, author: string): AISummary {
-  const paragraphs = rawText.split(/\n\n+/).filter(p => p.trim().length > 20);
-  const introduction = paragraphs[0]?.trim() || `A summary of "${title}" by ${author}.`;
-  const remaining = paragraphs.slice(1).join('\n\n');
-  const sentences = remaining.split(/[.!?]+/).filter(s => s.trim().length > 30).map(s => s.trim() + '.');
-  const coreIdeas = sentences.slice(0, 4).map(s => s.trim());
-  const keyTakeaways = sentences.slice(4, 8).map(s => s.trim());
+function buildFallback(title: string, author: string, raw: string): AISummary {
+  const paras = raw.split(/\n\n+/).filter(p => p.trim().length > 20);
+  const intro = paras[0]?.trim() || `Summary of "${title}" by ${author}.`;
+  const rest = paras.slice(1).join('\n\n');
+  const sents = rest.split(/[.!?]+/).filter(s => s.trim().length > 30).map(s => s.trim() + '.');
   return {
-    introduction,
-    coreIdeas: coreIdeas.length >= 2 ? coreIdeas : [
-      `"${title}" by ${author} explores significant themes that resonate with readers.`,
-      `The author presents unique perspectives and insights throughout the book.`,
-      `Key arguments are supported by evidence and examples specific to the subject matter.`,
-      `The book contributes meaningfully to its field and offers value to readers.`,
-    ],
-    keyTakeaways: keyTakeaways.length >= 2 ? keyTakeaways : [
-      `"${title}" offers valuable insights relevant to modern readers.`,
-      `${author}'s work challenges readers to think more deeply about the subject.`,
-    ],
-    fullText: rawText.trim().length > 100 ? rawText.trim() : `"${title}" by ${author} is a significant work. ${introduction} ${remaining}`,
+    introduction: intro,
+    coreIdeas: sents.slice(0, 4).length >= 2 ? sents.slice(0, 4) : [`"${title}" explores significant themes.`, `${author} presents unique perspectives.`, `Key arguments are supported by evidence.`, `The book contributes meaningfully to its field.`],
+    keyTakeaways: sents.slice(4, 8).length >= 2 ? sents.slice(4, 8) : [`${title} offers valuable insights.`, `${author}'s work challenges readers.`],
+    fullText: raw.trim().length > 100 ? raw.trim() : `"${title}" by ${author}. ${intro} ${rest}`,
   };
 }
+
+let cachedAI: Awaited<ReturnType<typeof ZAI.create>> | null = null;
 
 export async function POST(request: NextRequest) {
   try {
     const { title, author, description, categories } = await request.json() as {
-      title: string;
-      author: string;
-      description: string;
-      categories?: string[];
+      title: string; author: string; description: string; categories?: string[];
     };
+    if (!title || !author) return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
 
-    if (!title || !author) {
-      return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
-    }
-
-    const genreHint = categories && categories.length > 0
-      ? `\nGenres: ${categories.join(', ')}. Reflect these genres in your summary.`
-      : '';
-
-    const zai = await getAI();
+    const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}.` : '';
+    if (!cachedAI) cachedAI = await ZAI.create();
 
     const prompt = `Write a UNIQUE, BOOK-SPECIFIC summary for "${title}" by ${author}.
-About: ${description || 'No description available'}${genreHint}
+About: ${description || 'No description'}${genreHint}
 
-CRITICAL: Must be specific to THIS book. Reference the title and author throughout.
-If fiction: mention plot, characters, setting.
-If non-fiction: mention subject, methodology, conclusions.
-
+CRITICAL: Must be specific to THIS book. Reference title and author throughout.
 Return valid JSON:
-{
-  "introduction": "100-150 word intro about THIS specific book",
-  "coreIdeas": ["Specific idea 1 (40-60 words)", "Specific idea 2", "Specific idea 3", "Specific idea 4"],
-  "keyTakeaways": ["Takeaway 1 (20-30 words)", "Takeaway 2", "Takeaway 3", "Takeaway 4"],
-  "fullText": "400-500 word flowing narrative about ${title} by ${author}"
-}
-
+{"introduction":"100-150 word intro","coreIdeas":["idea1 (40-60 words)","idea2","idea3","idea4"],"keyTakeaways":["t1 (20-30 words)","t2","t3","t4"],"fullText":"400-500 word narrative about ${title} by ${author}"}
 JSON only, no markdown.`;
 
     let summary: AISummary | null = null;
@@ -96,9 +64,9 @@ JSON only, no markdown.`;
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await zai.chat.completions.create({
+        const completion = await cachedAI.chat.completions.create({
           messages: [
-            { role: 'system', content: 'You write UNIQUE, SPECIFIC book summaries. Always mention the book title and author. JSON only.' },
+            { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
             { role: 'user', content: prompt },
           ],
           temperature: 0.5,
@@ -108,24 +76,16 @@ JSON only, no markdown.`;
         summary = tryParseJSON(rawContent);
         if (summary) break;
       } catch (err) {
-        console.error(`[Summary] Attempt ${attempt + 1} error:`, err);
+        console.error(`[Summary] Attempt ${attempt + 1}:`, err);
       }
     }
 
-    if (!summary && rawContent.length > 50) {
-      summary = buildSummaryFromRawText(rawContent, title, author);
-    }
-
-    if (!summary) {
-      return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
-    }
+    if (!summary && rawContent.length > 50) summary = buildFallback(title, author, rawContent);
+    if (!summary) return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
 
     return NextResponse.json(summary);
   } catch (error) {
-    console.error('[Summary API] Fatal error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate summary. Please try again later.' },
-      { status: 500 }
-    );
+    console.error('[Summary API] Fatal:', error);
+    return NextResponse.json({ error: 'Failed to generate summary. Please try again later.' }, { status: 500 });
   }
 }

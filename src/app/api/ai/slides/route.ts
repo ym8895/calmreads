@@ -1,85 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Slide } from '@/lib/types';
-import { getAI } from '@/lib/ai-client';
+import ZAI from 'z-ai-web-dev-sdk';
 
 function tryParseSlides(content: string): Slide[] | null {
   let cleaned = content.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
-  }
+  if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed) && parsed.length >= 3 && parsed.every(s => s.title && Array.isArray(s.points) && s.points.length >= 3)) return parsed;
+    const p = JSON.parse(cleaned);
+    if (Array.isArray(p) && p.length >= 3 && p.every(s => s.title && Array.isArray(s.points) && s.points.length >= 3)) return p;
   } catch {}
-  const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-  if (jsonMatch) {
+  const m = cleaned.match(/\[[\s\S]*\]/);
+  if (m) {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(parsed) && parsed.length >= 3 && parsed.every(s => s.title && Array.isArray(s.points) && s.points.length >= 3)) return parsed;
+      const p = JSON.parse(m[0]);
+      if (Array.isArray(p) && p.length >= 3 && p.every(s => s.title && Array.isArray(s.points) && s.points.length >= 3)) return p;
     } catch {}
   }
   try {
-    const fixed = cleaned.replace(/,\s*]/g, ']').replace(/,\s*}/g, '}');
-    const parsed = JSON.parse(fixed);
-    if (Array.isArray(parsed) && parsed.length >= 3 && parsed.every(s => s.title && Array.isArray(s.points) && s.points.length >= 3)) return parsed;
+    const p = JSON.parse(cleaned.replace(/,\s*]/g, ']').replace(/,\s*}/g, '}'));
+    if (Array.isArray(p) && p.length >= 3 && p.every(s => s.title && Array.isArray(s.points) && s.points.length >= 3)) return p;
   } catch {}
   return null;
 }
 
-function buildSlidesFromRaw(rawText: string, bookTitle?: string): Slide[] {
-  const sentences = rawText.split(/[.!?]+/).filter(s => s.trim().length > 20).map(s => s.trim() + '.');
-  const title = bookTitle || 'this book';
+function buildFallbackSlides(raw: string, title?: string): Slide[] {
+  const sents = raw.split(/[.!?]+/).filter(s => s.trim().length > 20).map(s => s.trim() + '.');
+  const t = title || 'this book';
   const slides: Slide[] = [];
-  const titles = [`${title}`, 'Background', 'Key Themes', 'Analysis', 'Details', 'Insights', 'Perspectives', 'Applications', 'Takeaways', 'Conclusion'];
+  const names = [`${t}`, 'Background', 'Key Themes', 'Analysis', 'Details', 'Insights', 'Perspectives', 'Applications', 'Takeaways', 'Conclusion'];
   let si = 0;
-  for (let i = 0; i < 10 && si < sentences.length; i++) {
-    const pts = sentences.slice(si, si + 7);
+  for (let i = 0; i < 10 && si < sents.length; i++) {
+    const pts = sents.slice(si, si + 7);
     if (pts.length < 2) break;
-    slides.push({ title: titles[i], points: pts });
+    slides.push({ title: names[i], points: pts });
     si += 7;
   }
-  while (slides.length < 3) {
-    slides.push({ title: titles[slides.length], points: sentences.length > 0 ? sentences.slice(0, 5) : ['Content based on book summary.'] });
-  }
+  while (slides.length < 3) slides.push({ title: names[slides.length], points: sents.length ? sents.slice(0, 5) : ['Content from book summary.'] });
   return slides;
 }
+
+let cachedAI: Awaited<ReturnType<typeof ZAI.create>> | null = null;
 
 export async function POST(request: NextRequest) {
   try {
     const { summary, bookTitle, bookAuthor } = await request.json() as {
       summary: { fullText: string; introduction: string; coreIdeas: string[]; keyTakeaways: string[] };
-      bookTitle?: string;
-      bookAuthor?: string;
+      bookTitle?: string; bookAuthor?: string;
     };
+    if (!summary?.fullText) return NextResponse.json({ error: 'Summary text is required' }, { status: 400 });
 
-    if (!summary?.fullText) {
-      return NextResponse.json({ error: 'Summary text is required' }, { status: 400 });
-    }
-
-    const zai = await getAI();
+    if (!cachedAI) cachedAI = await ZAI.create();
     const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
 
-    const prompt = `Create 10 UNIQUE, BOOK-SPECIFIC slides for ${bookRef}.
-
+    const prompt = `Create 10 UNIQUE slides for ${bookRef}.
 Summary: ${summary.introduction}
-Core Ideas: ${summary.coreIdeas.join(' | ')}
+Ideas: ${summary.coreIdeas.join(' | ')}
 Takeaways: ${summary.keyTakeaways.join(' | ')}
-Full Text: ${summary.fullText}
+Full: ${summary.fullText}
 
-CRITICAL: Every slide MUST be specific to ${bookRef}. Reference actual title, author, content.
-Each slide: unique title (max 8 words) + 6-8 sentence points (15-25 words each).
-
-Return ONLY valid JSON array:
-[{"title": "Slide Title", "points": ["Full sentence.", ...]}, ...]`;
+CRITICAL: Every slide specific to ${bookRef}. Each: title + 6-8 sentence points (15-25 words).
+Return ONLY JSON array: [{"title":"...","points":["...","..."]}, ...]`;
 
     let slides: Slide[] | null = null;
     let rawContent = '';
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await zai.chat.completions.create({
+        const completion = await cachedAI.chat.completions.create({
           messages: [
-            { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. Reference actual book. JSON arrays only.' },
+            { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
             { role: 'user', content: prompt },
           ],
           temperature: 0.4,
@@ -89,21 +78,16 @@ Return ONLY valid JSON array:
         slides = tryParseSlides(rawContent);
         if (slides) break;
       } catch (err) {
-        console.error(`[Slides] Attempt ${attempt + 1} error:`, err);
+        console.error(`[Slides] Attempt ${attempt + 1}:`, err);
       }
     }
 
-    if (!slides && rawContent.length > 50) {
-      slides = buildSlidesFromRaw(rawContent, bookTitle);
-    }
-
-    if (!slides) {
-      return NextResponse.json({ error: 'Failed to generate slides. Please try again.' }, { status: 500 });
-    }
+    if (!slides && rawContent.length > 50) slides = buildFallbackSlides(rawContent, bookTitle);
+    if (!slides) return NextResponse.json({ error: 'Failed to generate slides. Please try again.' }, { status: 500 });
 
     return NextResponse.json(slides);
   } catch (error) {
-    console.error('[Slides API] Fatal error:', error);
+    console.error('[Slides API] Fatal:', error);
     return NextResponse.json({ error: 'Failed to generate slides. Please try again later.' }, { status: 500 });
   }
 }
