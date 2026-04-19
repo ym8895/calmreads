@@ -101,7 +101,7 @@ export function BookDetailView() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div className="max-w-4xl mx-auto px-2 sm:px-6 py-4 sm:py-12">
       {/* Book Hero - Artistic Layout */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

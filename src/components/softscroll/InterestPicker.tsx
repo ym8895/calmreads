@@ -36,7 +36,7 @@ export function InterestPicker() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-start px-4 sm:px-6 py-8 sm:py-12">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-start px-2 sm:px-6 py-4 sm:py-12">
       {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -61,7 +61,7 @@ export function InterestPicker() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-7 gap-3 sm:gap-4 max-w-6xl w-full mb-10"
+        className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-7 gap-2 sm:gap-4 max-w-6xl w-full mb-6 sm:mb-10"
       >
         {categories.map((cat) => {
           const isSelected = selectedInterests.includes(cat.id);
