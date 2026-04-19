@@ -109,9 +109,12 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     utt.rate = speed;
     utt.volume = isMuted ? 0 : 1;
 
-    // Use best available English voice - works on desktop and mobile
+    // Use best available English voice - Natasha preference on desktop, fallback on mobile
     const availableVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
-    const voice = availableVoices.find(v => v.lang.startsWith('en') && !v.name.includes('Off')) || availableVoices[0];
+    const voice = availableVoices.find(v => v.name.includes('Natasha'))
+      || availableVoices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en'))
+      || availableVoices.find(v => v.lang.startsWith('en') && !v.name.includes('Off'))
+      || availableVoices[0];
     if (voice) utt.voice = voice;
 
     utt.onstart = () => {
