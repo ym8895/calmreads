@@ -7,12 +7,21 @@ function tryParseJSON(content: string): AIStory | null {
   if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
     const parsed = JSON.parse(cleaned);
+    // Handle nested JSON strings
+    if (typeof parsed.introduction === 'string' && parsed.introduction.startsWith('{')) {
+      const inner = JSON.parse(parsed.introduction);
+      return { ...inner, fullStory: parsed.fullStory || '' };
+    }
     if (parsed.introduction && parsed.chapters) return parsed as AIStory;
   } catch {}
   const m = cleaned.match(/\{[\s\S]*\}/);
   if (m) {
     try {
       const parsed = JSON.parse(m[0]);
+      if (typeof parsed.introduction === 'string' && parsed.introduction.startsWith('{')) {
+        const inner = JSON.parse(parsed.introduction);
+        return { ...inner, fullStory: parsed.fullStory || '' };
+      }
       if (parsed.introduction && parsed.chapters) return parsed as AIStory;
     } catch {}
   }
@@ -46,17 +55,11 @@ export async function POST(request: NextRequest) {
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}` : '';
     const zai = await getAI();
 
-    const prompt = `Create a short narrated STORY for "${title}" by ${author}.
-About: ${description || 'No description'}${genreHint}
+    const prompt = `Write a short story about "${title}" by ${author}. 
+Description: ${description || 'No description'}${genreHint}
 
-Write in an engaging storytelling style. Include 4 chapters:
-1. The Beginning
-2. The Journey  
-3. The Climax
-4. The Resolution
-
-Return JSON only:
-{"title":"The Story of [title]","introduction":"Brief intro...","chapters":[{"number":1,"title":"Beginning","content":"..."},...],"fullStory":"Full story text 1500-2000 words"}`;
+Include 4 chapters: Beginning, Journey, Climax, Resolution.
+Return JSON with: title, introduction, chapters (array with number, title, content).`;
 
     let story: AIStory | null = null;
     let rawContent = '';
