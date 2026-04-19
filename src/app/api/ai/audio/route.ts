@@ -18,15 +18,15 @@ export async function POST(request: NextRequest) {
       input: text.slice(0, 3000),
       voice: 'tongtong',
       speed: 1.0,
-      response_format: 'mp3',
+      response_format: 'wav',
       stream: false,
     });
 
-    // The SDK returns an ArrayBuffer
+    // SDK returns a Response object with ArrayBuffer
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(new Uint8Array(arrayBuffer));
     const base64 = buffer.toString('base64');
-    const audioUrl = `data:audio/mp3;base64,${base64}`;
+    const audioUrl = `data:audio/wav;base64,${base64}`;
 
     return NextResponse.json({ audioUrl });
   } catch (error) {
