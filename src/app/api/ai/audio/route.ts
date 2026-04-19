@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import ZAI from 'z-ai-web-dev-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,33 +12,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let zai;
-    try {
-      const ZAI = (await import('z-ai-web-dev-sdk')).default;
-      zai = await ZAI.create();
-    } catch (sdkErr) {
-      console.error('[Audio API] SDK init error:', sdkErr);
-      return NextResponse.json(
-        { error: 'AI service is currently unavailable. Please try again in a moment.' },
-        { status: 503 }
-      );
-    }
+    const zai = await ZAI.create();
 
-    // Use TTS to generate audio from the summary text
-    const audioResponse = await zai.tts.create({
-      input: text.slice(0, 3000), // Limit to ~10 minutes of speech
-      voice: 'alloy',
+    const response = await zai.audio.tts.create({
+      input: text.slice(0, 3000),
+      voice: 'tongtong',
+      speed: 1.0,
+      response_format: 'mp3',
+      stream: false,
     });
 
-    // The SDK returns base64 audio data
-    const audioBase64 = audioResponse.audio || audioResponse.data;
-
-    if (!audioBase64) {
-      throw new Error('No audio data received from TTS service');
-    }
-
-    // Return the base64 audio data as a data URL
-    const audioUrl = `data:audio/mp3;base64,${audioBase64}`;
+    // The SDK returns an ArrayBuffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(new Uint8Array(arrayBuffer));
+    const base64 = buffer.toString('base64');
+    const audioUrl = `data:audio/mp3;base64,${base64}`;
 
     return NextResponse.json({ audioUrl });
   } catch (error) {
