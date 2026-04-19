@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
 
+function tryParseJSON(content: string): AISummary | null {
+  let cleaned = content.trim();
+  // Remove markdown code blocks
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  }
+  // Try direct parse
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
+      return parsed as AISummary;
+    }
+  } catch {}
+  // Try extracting JSON from surrounding text
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
+        return parsed as AISummary;
+      }
+    } catch {}
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { title, author, description } = await request.json() as {
+    const { title, author, description, categories } = await request.json() as {
       title: string;
       author: string;
       description: string;
+      categories?: string[];
     };
 
     if (!title || !author) {
@@ -16,77 +43,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const genreHint = categories && categories.length > 0
+      ? `\nThis book belongs to these genres/categories: ${categories.join(', ')}. Ensure your summary reflects the specific style, themes, and conventions of these genres.`
+      : '';
+
     const ZAI = (await import('z-ai-web-dev-sdk')).default;
     const zai = await ZAI.create();
 
-    const prompt = `Generate a comprehensive, factual book summary for "${title}" by ${author}.
+    const prompt = `You are an expert literary analyst. Write a UNIQUE, DETAILED, and BOOK-SPECIFIC summary for the following book.
 
-About the book: ${description || 'No description available'}
+Book: "${title}" by ${author}
+About the book: ${description || 'No description available'}${genreHint}
 
-IMPORTANT RULES:
-- Write exactly 400-500 words total
-- Use simple, beginner-friendly language
-- Do NOT hallucinate information
-- If you are uncertain about specific content, say so
-- Structure the response as valid JSON with this exact format:
+CRITICAL INSTRUCTIONS:
+- This summary MUST be specific to "${title}" by ${author}
+- DO NOT write generic platitudes like "this book presents a comprehensive exploration" or "the author draws upon extensive research"
+- Reference the ACTUAL title, author name, and genre-specific themes throughout
+- Include SPECIFIC details about the book's unique arguments, narrative style, or contribution to its genre
+- If this is fiction, mention plot elements, characters, and setting
+- If this is non-fiction, mention the actual subject matter, methodology, and conclusions
+- If you are unsure about specific details, be honest about it rather than writing vague generalities
+
+Structure your response as valid JSON with this exact format:
 {
-  "introduction": "A 100-120 word introduction about the book",
-  "coreIdeas": ["Idea 1 description", "Idea 2 description", "Idea 3 description", "Idea 4 description"],
-  "keyTakeaways": ["Takeaway 1", "Takeaway 2", "Takeaway 3", "Takeaway 3"],
-  "fullText": "The complete summary text of 400-500 words, combining introduction, ideas and takeaways into a flowing narrative"
+  "introduction": "A 100-150 word introduction that SPECIFICALLY discusses ${title} and what makes it unique",
+  "coreIdeas": ["Specific idea 1 about THIS book (40-60 words)", "Specific idea 2 about THIS book (40-60 words)", "Specific idea 3 about THIS book (40-60 words)", "Specific idea 4 about THIS book (40-60 words)"],
+  "keyTakeaways": ["Specific takeaway 1 from THIS book (20-30 words)", "Specific takeaway 2 (20-30 words)", "Specific takeaway 3 (20-30 words)", "Specific takeaway 4 (20-30 words)"],
+  "fullText": "A flowing 400-500 word narrative summary of ${title} that combines all sections. MUST mention the book title and author multiple times. MUST discuss the actual themes, arguments, or story of this specific book."
 }
 
-The core ideas should each be 40-60 words.
-The key takeaways should each be 20-30 words.
 Return ONLY valid JSON, no markdown or code blocks.`;
 
-    const completion = await zai.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a knowledgeable book summary assistant. You provide accurate, well-structured summaries. Always respond with valid JSON only.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.4,
-      max_tokens: 1500,
-    });
+    // Try generating with retry
+    let summary: AISummary | null = null;
+    let lastError: string | null = null;
 
-    const content = completion.choices[0]?.message?.content || '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const completion = await zai.chat.completions.create({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a knowledgeable book summary assistant who writes UNIQUE, SPECIFIC summaries for each book. Never write generic or placeholder content. Always mention the actual book title and author in your summary. Always respond with valid JSON only.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.5,
+          max_tokens: 2000,
+        });
 
-    // Parse the response - handle potential markdown wrapping
-    let cleaned = content.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+        const content = completion.choices[0]?.message?.content || '';
+        summary = tryParseJSON(content);
+        if (summary) break;
+
+        lastError = `Failed to parse JSON from LLM response (attempt ${attempt + 1})`;
+      } catch (err) {
+        lastError = `LLM call failed (attempt ${attempt + 1}): ${err}`;
+      }
     }
 
-    const summary: AISummary = JSON.parse(cleaned);
-
-    // Validate structure
-    if (!summary.introduction || !summary.coreIdeas || !summary.keyTakeaways || !summary.fullText) {
-      throw new Error('Invalid summary structure');
+    if (!summary) {
+      console.error('Summary generation failed:', lastError);
+      return NextResponse.json(
+        { error: 'Failed to generate a book-specific summary. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(summary);
   } catch (error) {
     console.error('Error generating summary:', error);
-
-    // Return a graceful fallback summary
-    return NextResponse.json({
-      introduction: `This is a summary overview of the requested book. The analysis covers the main themes, key arguments, and significant contributions of the work. Due to processing constraints, this is a generated placeholder summary that provides a structural overview of what a complete summary would contain.`,
-      coreIdeas: [
-        'The central premise explores fundamental questions about the human experience and our understanding of the world around us, drawing from research and observations.',
-        'A key framework is presented that helps readers understand complex topics through structured thinking and practical application in everyday life.',
-        'The work challenges conventional wisdom by presenting alternative viewpoints supported by evidence, encouraging readers to think critically about established norms.',
-        'Practical applications are woven throughout, providing actionable insights that readers can implement in their personal and professional lives immediately.',
-      ],
-      keyTakeaways: [
-        'Understanding requires both theoretical knowledge and practical experience working together in harmony.',
-        'Critical thinking is essential for making informed decisions in an increasingly complex world.',
-        'Personal growth comes from embracing challenges and learning from diverse perspectives.',
-        'The most valuable insights often come from interdisciplinary approaches to problem-solving.',
-      ],
-      fullText: `This book presents a comprehensive exploration of its subject matter, weaving together theoretical frameworks with practical applications. The author draws upon extensive research and real-world examples to construct a compelling narrative that engages both newcomers and seasoned readers alike. At its core, the work addresses fundamental questions about how we understand and interact with the world, proposing a framework that challenges readers to reconsider their assumptions and embrace more nuanced perspectives. The central argument builds progressively across chapters, each one laying groundwork for increasingly sophisticated concepts. Early sections establish foundational principles, while later portions explore their implications in depth. Throughout, the author maintains a careful balance between accessibility and intellectual rigor, ensuring that complex ideas remain approachable without sacrificing their depth. Practical applications are a hallmark of this work, with the author consistently bridging the gap between abstract theory and concrete action. Readers will find numerous examples of how the principles discussed can be applied in everyday contexts, from personal decision-making to professional development. The book also addresses common misconceptions, providing clear corrections supported by evidence. The writing style is characterized by clarity and precision, with the author demonstrating a gift for making complex topics understandable without oversimplification. Each chapter concludes with key insights that reinforce the main themes and provide natural stopping points for reflection. This structure makes the book particularly suitable for both cover-to-cover reading and reference use. Ultimately, this work makes a significant contribution to its field by synthesizing diverse strands of thought into a coherent, actionable framework. It stands as both an introduction for newcomers and a valuable reference for those already familiar with the subject matter.`,
-    });
+    return NextResponse.json(
+      { error: 'Failed to generate summary. Please try again later.' },
+      { status: 500 }
+    );
   }
 }

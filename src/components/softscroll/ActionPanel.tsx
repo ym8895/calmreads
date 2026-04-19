@@ -2,9 +2,11 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
+import { categories } from '@/lib/categories';
 import {
   Bookmark, BookmarkCheck, BookOpen, ExternalLink,
-  ShoppingBag, Sparkles, ArrowRight, StickyNote, X
+  ShoppingBag, Sparkles, ArrowRight, StickyNote, X,
+  Tag, Filter
 } from 'lucide-react';
 import { useState } from 'react';
 import { ArtisticBookCover } from './ArtisticBook';
@@ -12,7 +14,7 @@ import { ArtisticBookCover } from './ArtisticBook';
 export function ActionPanel() {
   const {
     currentView, currentBook, savedBooks, toggleSaveBook,
-    setCurrentView, selectedInterests
+    setCurrentView, selectedInterests, toggleInterest
   } = useSoftScrollStore();
   const [note, setNote] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -40,6 +42,16 @@ export function ActionPanel() {
     }
   };
 
+  const handleClearAll = () => {
+    const { setSelectedInterests } = useSoftScrollStore.getState();
+    setSelectedInterests([]);
+  };
+
+  // Get category names for selected interests
+  const selectedCategories = selectedInterests
+    .map(id => categories.find(c => c.id === id))
+    .filter(Boolean);
+
   // Show different panel content based on current view
   const showBookActions = currentView === 'book-detail' && currentBook;
   const showDiscoverCta = currentView === 'interests';
@@ -57,6 +69,59 @@ export function ActionPanel() {
 
         <div className="border-t border-border/30" />
 
+        {/* Selected Topics Panel — visible on ALL views */}
+        {selectedInterests.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground/80 flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-[#8FB9A8]" />
+                Selected Topics
+                <span className="text-xs font-normal text-muted-foreground">({selectedInterests.length})</span>
+              </h3>
+              <button
+                onClick={handleClearAll}
+                className="text-[10px] text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+              >
+                Clear all
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+              <AnimatePresence>
+                {selectedCategories.map((cat) => cat && (
+                  <motion.button
+                    key={cat.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => toggleInterest(cat.id)}
+                    className="group inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#D4E6E0]/60 dark:bg-[#2C4A3F]/30 border border-[#8FB9A8]/30 text-xs font-medium text-[#2C4A3F] dark:text-[#8FB9A8] hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-800 hover:text-red-600 dark:hover:text-red-400 transition-all cursor-pointer"
+                  >
+                    <Tag className="w-3 h-3" />
+                    {cat.name}
+                    <X className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ml-0.5" />
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {showDiscoverCta && (
+              <button
+                onClick={handleDiscover}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white text-sm font-medium transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4" />
+                Discover Books
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+          </motion.div>
+        )}
+
         {/* Book Action Panel - shows when viewing a book */}
         <AnimatePresence mode="wait">
           {showBookActions && currentBook && (
@@ -67,6 +132,7 @@ export function ActionPanel() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
+              <div className="border-t border-border/30" />
               <h3 className="text-sm font-semibold text-foreground/80">Quick Actions</h3>
 
               {/* Book Cover Mini */}
@@ -163,8 +229,8 @@ export function ActionPanel() {
             </motion.div>
           )}
 
-          {/* Discover CTA - shows on interest picker */}
-          {showDiscoverCta && (
+          {/* Discover CTA - shows on interest picker when no topics selected */}
+          {showDiscoverCta && selectedInterests.length === 0 && (
             <motion.div
               key="discover-cta"
               initial={{ opacity: 0, y: 10 }}
@@ -177,20 +243,9 @@ export function ActionPanel() {
                 <p className="text-xs text-muted-foreground leading-relaxed mb-4">
                   Select your favorite topics from the center panel, then discover personalized book recommendations curated just for you.
                 </p>
-                {selectedInterests.length > 0 ? (
-                  <button
-                    onClick={handleDiscover}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#8FB9A8] hover:bg-[#7AA896] text-white text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Discover {selectedInterests.length} topics
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <p className="text-center text-xs text-muted-foreground/60 italic">
-                    Pick topics to begin
-                  </p>
-                )}
+                <p className="text-center text-xs text-muted-foreground/60 italic">
+                  Pick topics to begin
+                </p>
               </div>
 
               {/* Stats */}

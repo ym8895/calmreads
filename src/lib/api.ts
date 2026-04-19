@@ -22,19 +22,34 @@ export async function fetchAISummary(book: Book): Promise<AISummary> {
   const res = await fetch(`${API_BASE}/ai/summary`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: book.title, author: book.author, description: book.description }),
+    body: JSON.stringify({
+      title: book.title,
+      author: book.author,
+      description: book.description,
+      categories: book.categories,
+    }),
   });
-  if (!res.ok) throw new Error('Failed to generate summary');
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({ error: 'Failed to generate summary' }));
+    throw new Error(errData.error || 'Failed to generate summary');
+  }
   return res.json();
 }
 
-export async function fetchAISlides(summary: AISummary): Promise<Slide[]> {
+export async function fetchAISlides(summary: AISummary, book?: Book): Promise<Slide[]> {
   const res = await fetch(`${API_BASE}/ai/slides`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ summary }),
+    body: JSON.stringify({
+      summary,
+      bookTitle: book?.title,
+      bookAuthor: book?.author,
+    }),
   });
-  if (!res.ok) throw new Error('Failed to generate slides');
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({ error: 'Failed to generate slides' }));
+    throw new Error(errData.error || 'Failed to generate slides');
+  }
   return res.json();
 }
 

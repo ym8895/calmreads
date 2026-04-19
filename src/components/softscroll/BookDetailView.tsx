@@ -25,12 +25,13 @@ export function BookDetailView() {
 
   const isSaved = currentBook ? savedBooks.some((b) => b.id === currentBook.id) : false;
 
-  // Stop audio when switching to a different book or view
+  // Stop audio and clear errors when switching to a different book
   useEffect(() => {
+    setError(null);
     return () => {
       stopGlobalSpeech();
     };
-  }, []);
+  }, [currentBook?.id]);
 
   const generateSummary = async () => {
     if (!currentBook || summary) return;
@@ -39,8 +40,8 @@ export function BookDetailView() {
     try {
       const data = await fetchAISummary(currentBook);
       setSummary(data);
-    } catch {
-      setError('Failed to generate summary. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate summary. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -51,10 +52,10 @@ export function BookDetailView() {
     setIsGenerating(true);
     setError(null);
     try {
-      const data = await fetchAISlides(summary);
+      const data = await fetchAISlides(summary, currentBook);
       setSlides(data);
-    } catch {
-      setError('Failed to generate slides. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate slides. Please try again.');
     } finally {
       setIsGenerating(false);
     }

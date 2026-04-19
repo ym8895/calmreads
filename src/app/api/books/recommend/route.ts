@@ -3,7 +3,7 @@ import type { Book } from '@/lib/types';
 import { categorySearchMap } from '@/lib/categories';
 
 const BOOK_CACHE = new Map<string, { data: Book[]; timestamp: number }>();
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 function getCacheKey(interests: string[]): string {
   return interests.sort().join(',');
@@ -13,7 +13,7 @@ function getCacheKey(interests: string[]): string {
 async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
   try {
     const res = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=6&fields=key,title,author_name,first_publish_year,subject,edition_key,cover_i`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=key,title,author_name,first_publish_year,subject,edition_key,cover_i`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
@@ -41,7 +41,7 @@ async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
 async function fetchFromGoogleBooks(query: string): Promise<Book[]> {
   try {
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=6`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Fetch from Open Library + Google Books
     const searchTerms = interests
       .flatMap((interest: string) => categorySearchMap[interest] || [interest])
-      .slice(0, 6);
+      .slice(0, 15);
 
     const fetchPromises = searchTerms.map(async (term) => {
       const [olBooks, gbBooks] = await Promise.all([
@@ -120,7 +120,9 @@ export async function POST(request: NextRequest) {
     await Promise.all(fetchPromises);
 
     const uniqueBooks = deduplicateBooks(allBooks);
-    const topBooks = uniqueBooks.slice(0, 20);
+    // Shuffle slightly to add variety, then cap at 60
+    const shuffled = uniqueBooks.sort(() => Math.random() - 0.5);
+    const topBooks = shuffled.slice(0, 60);
 
     BOOK_CACHE.set(cacheKey, { data: topBooks, timestamp: Date.now() });
 
