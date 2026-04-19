@@ -206,16 +206,6 @@ export function CategoryBookIcon({ categoryId, categoryName, emoji, isSelected, 
           )}
         </div>
 
-        {/* Watercolor wash overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-
-        {/* Title label at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2 bg-gradient-to-t from-black/20 to-transparent">
-          <p className={`${textSizes[size]} font-semibold text-white/90 text-center leading-tight drop-shadow-sm`}>
-            {categoryName}
-          </p>
-        </div>
-
         {/* Selected checkmark */}
         {isSelected && (
           <div className="absolute top-1.5 right-1.5 w-4 h-4 sm:w-5 sm:h-5 bg-[#8FB9A8] rounded-full flex items-center justify-center shadow-md">
@@ -279,24 +269,6 @@ export function ArtisticBookCover({ title, author, coverImage, size = 'md', clas
 
         {/* Page Edge Effect */}
         <div className="absolute right-0 top-2 bottom-2 w-1 bg-white/30 dark:bg-white/10 rounded-r" />
-
-        {/* Title & Author on cover */}
-        <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 bg-gradient-to-t from-black/60 via-black/10 to-transparent">
-          <h4 className={`font-bold text-white/95 leading-tight drop-shadow-md ${
-            size === 'sm' ? 'text-[9px] line-clamp-2' :
-            size === 'md' ? 'text-xs line-clamp-3' :
-            'text-sm sm:text-base line-clamp-3'
-          }`}>
-            {title}
-          </h4>
-          {size !== 'sm' && (
-            <p className={`text-white/70 mt-1 drop-shadow-sm ${
-              size === 'lg' ? 'text-xs sm:text-sm' : 'text-[10px]'
-            }`}>
-              {author}
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

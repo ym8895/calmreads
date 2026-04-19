@@ -114,11 +114,6 @@ export function BookDetailView() {
                     {cat}
                   </span>
                 ))}
-                {currentBook.isFree && (
-                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
-                    Free
-                  </span>
-                )}
               </div>
             </div>
 
@@ -134,13 +129,16 @@ export function BookDetailView() {
               >
                 {isSaved ? 'Saved' : 'Save for Later'}
               </button>
-              {currentBook.isFree && currentBook.fullTextUrl && (
-                <button
-                  onClick={() => setCurrentView('reader')}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer"
+              {currentBook.previewLink && (
+                <a
+                  href={currentBook.previewLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  Read Free
-                </button>
+                  Book Link
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </a>
               )}
             </div>
           </div>

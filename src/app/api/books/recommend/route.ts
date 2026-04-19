@@ -9,10 +9,11 @@ function getCacheKey(interests: string[]): string {
   return interests.sort().join(',');
 }
 
+// Fetch from Open Library — metadata only, link to OL page
 async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
   try {
     const res = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=8&fields=key,title,author_name,first_publish_year,subject,edition_key,cover_i`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=6&fields=key,title,author_name,first_publish_year,subject,edition_key,cover_i`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
@@ -26,8 +27,8 @@ async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
         ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
         : '/placeholder-book.svg',
       previewLink: `https://openlibrary.org${doc.key}`,
-      isFree: true,
-      fullTextUrl: `https://openlibrary.org${doc.key}`,
+      isFree: false,
+      fullTextUrl: undefined,
       categories: Array.isArray(doc.subject) ? doc.subject.slice(0, 3) as string[] : [],
       publishedYear: doc.first_publish_year as number | undefined,
     }));
@@ -36,18 +37,17 @@ async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
   }
 }
 
+// Fetch from Google Books — metadata only
 async function fetchFromGoogleBooks(query: string): Promise<Book[]> {
   try {
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=6`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return [];
     const data = await res.json();
     return (data.items || []).map((item: Record<string, unknown>) => {
       const volumeInfo = item.volumeInfo as Record<string, unknown>;
-      const accessInfo = item.accessInfo as Record<string, unknown>;
-      const isFree = accessInfo?.viewability === 'ALL_PUBLIC' || accessInfo?.pdf?.isAvailable === true;
       return {
         id: `gb-${(item.id as string) || Math.random().toString(36).slice(2)}`,
         title: (volumeInfo?.title as string) || 'Unknown Title',
@@ -60,8 +60,8 @@ async function fetchFromGoogleBooks(query: string): Promise<Book[]> {
         coverImage: (volumeInfo?.imageLinks?.thumbnail as string) || '/placeholder-book.svg',
         previewLink: (volumeInfo?.previewLink as string) || (volumeInfo?.infoLink as string) || '#',
         buyLink: (volumeInfo?.infoLink as string) || undefined,
-        isFree,
-        fullTextUrl: isFree ? (volumeInfo?.previewLink as string) : undefined,
+        isFree: false,
+        fullTextUrl: undefined,
         categories: Array.isArray(volumeInfo?.categories) ? volumeInfo.categories as string[] : [],
         publishedYear: volumeInfo?.publishedDate ? parseInt(String(volumeInfo.publishedDate)) || undefined : undefined,
         pageCount: volumeInfo?.pageCount as number | undefined,
@@ -104,10 +104,10 @@ export async function POST(request: NextRequest) {
 
     const allBooks: Book[] = [];
 
-    // Fetch from multiple APIs for selected interests
+    // Fetch from Open Library + Google Books
     const searchTerms = interests
       .flatMap((interest: string) => categorySearchMap[interest] || [interest])
-      .slice(0, 6); // Limit queries to avoid rate limiting
+      .slice(0, 6);
 
     const fetchPromises = searchTerms.map(async (term) => {
       const [olBooks, gbBooks] = await Promise.all([

@@ -49,11 +49,6 @@ export function BookCard({ book, index, compact = false }: BookCardProps) {
               <p className="text-muted-foreground text-xs mt-1">{book.author}</p>
             </div>
             <div className="flex items-center gap-2 mt-2">
-              {book.isFree && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
-                  Free
-                </span>
-              )}
               {book.publishedYear && (
                 <span className="text-[10px] text-muted-foreground">{book.publishedYear}</span>
               )}
@@ -93,11 +88,6 @@ export function BookCard({ book, index, compact = false }: BookCardProps) {
               </div>
 
               <div className="flex items-center justify-between mt-2">
-                {book.isFree && (
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#D4E6E0] text-[#2C4A3F] dark:bg-[#2C4A3F] dark:text-[#8FB9A8] border border-[#C8DDD5] dark:border-[#344E44]">
-                    Free to read
-                  </span>
-                )}
                 {book.publishedYear && (
                   <span className="text-xs text-muted-foreground">
                     {book.publishedYear}

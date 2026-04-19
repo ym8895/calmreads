@@ -91,24 +91,16 @@ export function ActionPanel() {
                   {isSaved ? 'Saved to List' : 'Save for Later'}
                 </button>
 
-                {currentBook.isFree && currentBook.fullTextUrl && (
-                  <button
-                    onClick={() => setCurrentView('reader')}
+                {currentBook.previewLink && (
+                  <a
+                    href={currentBook.previewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer"
                   >
                     <BookOpen className="w-4 h-4" />
-                    Read Free
-                  </button>
-                )}
-
-                {currentBook.previewLink && (
-                  <button
-                    onClick={() => window.open(currentBook.previewLink, '_blank')}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-muted/40 hover:bg-muted/60 text-muted-foreground transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Preview
-                  </button>
+                    Book Link
+                  </a>
                 )}
 
                 {currentBook.buyLink && (
