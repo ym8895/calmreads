@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
+import { getAI } from '@/lib/ai-client';
 
 function tryParseJSON(content: string): AISummary | null {
   let cleaned = content.trim();
-  // Remove markdown code blocks
   if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   }
-  // Try direct parse
   try {
     const parsed = JSON.parse(cleaned);
     if (parsed.introduction && parsed.coreIdeas && parsed.keyTakeaways && parsed.fullText) {
       return parsed as AISummary;
     }
   } catch {}
-  // Try extracting JSON from surrounding text
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
@@ -24,7 +22,6 @@ function tryParseJSON(content: string): AISummary | null {
       }
     } catch {}
   }
-  // Try fixing common JSON issues
   try {
     const fixed = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
     const parsed = JSON.parse(fixed);
@@ -42,25 +39,21 @@ function buildSummaryFromRawText(rawText: string, title: string, author: string)
   const sentences = remaining.split(/[.!?]+/).filter(s => s.trim().length > 30).map(s => s.trim() + '.');
   const coreIdeas = sentences.slice(0, 4).map(s => s.trim());
   const keyTakeaways = sentences.slice(4, 8).map(s => s.trim());
-
   return {
     introduction,
     coreIdeas: coreIdeas.length >= 2 ? coreIdeas : [
-      `"${title}" by ${author} explores significant themes that resonate with readers interested in this genre.`,
+      `"${title}" by ${author} explores significant themes that resonate with readers.`,
       `The author presents unique perspectives and insights throughout the book.`,
       `Key arguments are supported by evidence and examples specific to the subject matter.`,
-      `The book contributes meaningfully to its field and offers value to both new and experienced readers.`,
+      `The book contributes meaningfully to its field and offers value to readers.`,
     ],
     keyTakeaways: keyTakeaways.length >= 2 ? keyTakeaways : [
-      `"${title}" offers valuable insights relevant to modern readers and contemporary issues.`,
+      `"${title}" offers valuable insights relevant to modern readers.`,
       `${author}'s work challenges readers to think more deeply about the subject.`,
     ],
     fullText: rawText.trim().length > 100 ? rawText.trim() : `"${title}" by ${author} is a significant work. ${introduction} ${remaining}`,
   };
 }
-
-// Static import — more reliable than dynamic import in Next.js API routes
-import ZAI from 'z-ai-web-dev-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,34 +69,27 @@ export async function POST(request: NextRequest) {
     }
 
     const genreHint = categories && categories.length > 0
-      ? `\nThis book belongs to these genres/categories: ${categories.join(', ')}. Ensure your summary reflects the specific style, themes, and conventions of these genres.`
+      ? `\nGenres: ${categories.join(', ')}. Reflect these genres in your summary.`
       : '';
 
-    const zai = await ZAI.create();
+    const zai = await getAI();
 
-    const prompt = `You are an expert literary analyst. Write a UNIQUE, DETAILED, and BOOK-SPECIFIC summary for the following book.
+    const prompt = `Write a UNIQUE, BOOK-SPECIFIC summary for "${title}" by ${author}.
+About: ${description || 'No description available'}${genreHint}
 
-Book: "${title}" by ${author}
-About the book: ${description || 'No description available'}${genreHint}
+CRITICAL: Must be specific to THIS book. Reference the title and author throughout.
+If fiction: mention plot, characters, setting.
+If non-fiction: mention subject, methodology, conclusions.
 
-CRITICAL INSTRUCTIONS:
-- This summary MUST be specific to "${title}" by ${author}
-- DO NOT write generic platitudes like "this book presents a comprehensive exploration" or "the author draws upon extensive research"
-- Reference the ACTUAL title, author name, and genre-specific themes throughout
-- Include SPECIFIC details about the book's unique arguments, narrative style, or contribution to its genre
-- If this is fiction, mention plot elements, characters, and setting
-- If this is non-fiction, mention the actual subject matter, methodology, and conclusions
-- If you are unsure about specific details, be honest about it rather than writing vague generalities
-
-Structure your response as valid JSON with this exact format:
+Return valid JSON:
 {
-  "introduction": "A 100-150 word introduction that SPECIFICALLY discusses ${title} and what makes it unique",
-  "coreIdeas": ["Specific idea 1 about THIS book (40-60 words)", "Specific idea 2 about THIS book (40-60 words)", "Specific idea 3 about THIS book (40-60 words)", "Specific idea 4 about THIS book (40-60 words)"],
-  "keyTakeaways": ["Specific takeaway 1 from THIS book (20-30 words)", "Specific takeaway 2 (20-30 words)", "Specific takeaway 3 (20-30 words)", "Specific takeaway 4 (20-30 words)"],
-  "fullText": "A flowing 400-500 word narrative summary of ${title} that combines all sections. MUST mention the book title and author multiple times."
+  "introduction": "100-150 word intro about THIS specific book",
+  "coreIdeas": ["Specific idea 1 (40-60 words)", "Specific idea 2", "Specific idea 3", "Specific idea 4"],
+  "keyTakeaways": ["Takeaway 1 (20-30 words)", "Takeaway 2", "Takeaway 3", "Takeaway 4"],
+  "fullText": "400-500 word flowing narrative about ${title} by ${author}"
 }
 
-Return ONLY valid JSON, no markdown or code blocks.`;
+JSON only, no markdown.`;
 
     let summary: AISummary | null = null;
     let rawContent = '';
@@ -112,21 +98,17 @@ Return ONLY valid JSON, no markdown or code blocks.`;
       try {
         const completion = await zai.chat.completions.create({
           messages: [
-            {
-              role: 'system',
-              content: 'You are a knowledgeable book summary assistant. Write UNIQUE, SPECIFIC summaries. Always mention the actual book title and author. Always respond with valid JSON only.',
-            },
+            { role: 'system', content: 'You write UNIQUE, SPECIFIC book summaries. Always mention the book title and author. JSON only.' },
             { role: 'user', content: prompt },
           ],
           temperature: 0.5,
           max_tokens: 2000,
         });
-
         rawContent = completion.choices[0]?.message?.content || '';
         summary = tryParseJSON(rawContent);
         if (summary) break;
       } catch (err) {
-        console.error(`[Summary API] Attempt ${attempt + 1} failed:`, err);
+        console.error(`[Summary] Attempt ${attempt + 1} error:`, err);
       }
     }
 
@@ -135,15 +117,12 @@ Return ONLY valid JSON, no markdown or code blocks.`;
     }
 
     if (!summary) {
-      return NextResponse.json(
-        { error: 'Failed to generate summary. Please try again.' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
     }
 
     return NextResponse.json(summary);
   } catch (error) {
-    console.error('[Summary API] Error:', error);
+    console.error('[Summary API] Fatal error:', error);
     return NextResponse.json(
       { error: 'Failed to generate summary. Please try again later.' },
       { status: 500 }
