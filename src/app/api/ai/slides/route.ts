@@ -58,15 +58,16 @@ export async function POST(request: NextRequest) {
         const parsed = tryParseSlides(cached.slides);
         if (parsed) return NextResponse.json(parsed);
       }
-    }
+}
 
     const zai = await getAI();
-    const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
+    const bookTitle = body.bookTitle || '';
+    const bookAuthor = body.bookAuthor || '';
 
-    const prompt = `Create 8 detailed slides for ${bookRef}.
-Use: ${summary.coreIdeas.join(' | ')} | ${summary.keyTakeaways.join(' | ')}
-Each slide: title + 5 meaningful points.
-Return JSON array only: [{"title":"slide title","points":["point1","point2","point3","point4","point5"]},...]`;
+    const prompt = `Create 8 slides for "${bookTitle}" by ${bookAuthor}.
+Use ideas: ${summary.coreIdeas.join(', ')}
+Each slide: title + 5 meaningful points (15-20 words).
+Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","point5"]},...]`;
 
     let slides: Slide[] | null = null;
     let rawContent = '';
