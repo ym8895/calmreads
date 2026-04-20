@@ -17,21 +17,13 @@ function tryParseJSON(content: string): AIStory | null {
   if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
     const parsed = JSON.parse(cleaned);
-    if (typeof parsed.introduction === 'string' && parsed.introduction.startsWith('{')) {
-      const inner = JSON.parse(parsed.introduction);
-      return { ...inner, fullStory: parsed.fullStory || '' };
-    }
-    if (parsed.introduction && parsed.chapters) return parsed as AIStory;
+    if (parsed.introduction || parsed.title) return parsed as AIStory;
   } catch {}
   const m = cleaned.match(/\{[\s\S]*\}/);
   if (m) {
     try {
       const parsed = JSON.parse(m[0]);
-      if (typeof parsed.introduction === 'string' && parsed.introduction.startsWith('{')) {
-        const inner = JSON.parse(parsed.introduction);
-        return { ...inner, fullStory: parsed.fullStory || '' };
-      }
-      if (parsed.introduction && parsed.chapters) return parsed as AIStory;
+      if (parsed.introduction || parsed.title) return parsed as AIStory;
     } catch {}
   }
   return null;

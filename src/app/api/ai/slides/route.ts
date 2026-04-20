@@ -14,18 +14,18 @@ function tryParseSlides(content: string): Slide[] | null {
   if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
     const p = JSON.parse(cleaned);
-    if (Array.isArray(p) && p.length >= 3 && p.every(s => s.title && Array.isArray(s.points))) return p;
+    if (Array.isArray(p) && p.length >= 1 && p.every(s => s.title || s.points)) return p as Slide[];
   } catch {}
   const m = cleaned.match(/\[[\s\S]*\]/);
   if (m) {
     try {
       const p = JSON.parse(m[0]);
-      if (Array.isArray(p) && p.length >= 3 && p.every(s => s.title && Array.isArray(s.points))) return p;
+      if (Array.isArray(p) && p.length >= 1) return p as Slide[];
     } catch {}
   }
   try {
     const p = JSON.parse(cleaned.replace(/,\s*]/g, ']').replace(/,\s*}/g, '}'));
-    if (Array.isArray(p) && p.length >= 3 && p.every(s => s.title && Array.isArray(s.points))) return p;
+    if (Array.isArray(p) && p.length >= 1) return p as Slide[];
   } catch {}
   return null;
 }
@@ -42,7 +42,7 @@ function buildFallbackSlides(raw: string, title?: string): Slide[] {
     slides.push({ title: names[i], points: pts });
     si += 7;
   }
-  while (slides.length < 3) slides.push({ title: names[slides.length], points: sents.length ? sents.slice(0, 5) : ['Content from book.'] });
+  while (slides.length < 3) slides.push({ title: names[slides.length] || 'Slide', points: sents.length ? sents.slice(0, 5) : ['Content from book.'] });
   return slides;
 }
 
