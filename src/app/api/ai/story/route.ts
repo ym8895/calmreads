@@ -83,7 +83,7 @@ Return JSON with: title, introduction (50+ words), chapters (each with number, t
             { role: 'user', content: prompt },
           ],
           temperature: 0.7,
-          max_tokens: 4000,
+          max_tokens: 3000,
         });
         rawContent = completion.choices[0]?.message?.content || '';
         story = tryParseJSON(rawContent);

@@ -84,7 +84,7 @@ Return ONLY JSON array: [{"title":"...","points":["point1","point2","point3","po
             { role: 'user', content: prompt },
           ],
           temperature: 0.4,
-          max_tokens: 5000,
+          max_tokens: 4000,
         });
         rawContent = completion.choices[0]?.message?.content || '';
         slides = tryParseSlides(rawContent);
