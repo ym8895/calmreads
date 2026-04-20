@@ -63,6 +63,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       if (availableVoices.length > 0) {
         setVoices(availableVoices);
         voicesRef.current = availableVoices;
+        console.log('Available voices:', availableVoices.map(v => v.name));
       }
     };
     loadVoices();
