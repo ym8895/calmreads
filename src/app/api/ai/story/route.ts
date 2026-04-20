@@ -64,12 +64,11 @@ export async function POST(request: NextRequest) {
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}` : '';
     const zai = await getAI();
 
-    const prompt = `Write a detailed story about "${title}" by ${author}. 
+    const prompt = `Write a concise story about "${title}" by ${author}. 
 Description: ${description || 'No description'}${genreHint}
 
-IMPORTANT: Write full detailed content for each chapter. Each chapter should be 150-200 words.
-Include 4 chapters: Beginning, Journey, Climax, Resolution.
-Return JSON with: title, introduction (50+ words), chapters (each with number, title, content 150-200 words).`;
+Include 4 short chapters: Beginning, Journey, Climax, Resolution.
+Return JSON: title, intro (short), chapters (each with number, title, short content).`;
 
     let story: AIStory | null = null;
     let rawContent = '';
@@ -83,7 +82,7 @@ Return JSON with: title, introduction (50+ words), chapters (each with number, t
             { role: 'user', content: prompt },
           ],
           temperature: 0.7,
-          max_tokens: 3000,
+          max_tokens: 2000,
         });
         rawContent = completion.choices[0]?.message?.content || '';
         story = tryParseJSON(rawContent);
