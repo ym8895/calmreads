@@ -114,12 +114,28 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     utt.rate = speed;
     utt.volume = isMuted ? 0 : 1;
 
-    // Use best available English voice - prioritize quality voices across browsers
+    // Use selected voice or best available
     const availableVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
-    const voice = availableVoices.find(v => v.lang.startsWith('en') && /Samantha|Natasha|Zira|David|Google|Default/i.test(v.name))
-      || availableVoices.find(v => v.lang.startsWith('en'))
-      || availableVoices[0];
-    if (voice) utt.voice = voice;
+    let voice: SpeechSynthesisVoice | undefined;
+    
+    if (selectedVoice) {
+      voice = availableVoices.find(v => v.name === selectedVoice);
+    }
+    
+    if (!voice) {
+      const preferredVoices = ['Samantha', 'Natasha', 'Zira', 'Google US English', 'Microsoft Eva', 'Aria', 'Hazel', 'Susan'];
+      voice = availableVoices.find(v => 
+        v.lang.startsWith('en') && preferredVoices.some(pv => v.name.includes(pv))
+      );
+    }
+    if (!voice) {
+      voice = availableVoices.find(v => v.lang.startsWith('en'));
+    }
+    if (!voice) voice = availableVoices[0];
+    if (voice) {
+      console.log('Using voice:', voice.name);
+      utt.voice = voice;
+    }
 
     utt.onstart = () => {
       if (!mountedRef.current) return;
