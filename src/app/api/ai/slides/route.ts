@@ -63,14 +63,14 @@ export async function POST(request: NextRequest) {
     const zai = await getAI();
     const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
 
-    const prompt = `Create 10 UNIQUE slides for ${bookRef}.
+    const prompt = `Create 10 DETAILED slides for ${bookRef}.
 Summary: ${summary.introduction}
 Ideas: ${summary.coreIdeas.join(' | ')}
 Takeaways: ${summary.keyTakeaways.join(' | ')}
-Full: ${summary.fullText}
+Full summary: ${summary.fullText}
 
-CRITICAL: Every slide specific to ${bookRef}. Each: title + 6-8 sentence points (15-25 words).
-Return ONLY JSON array: [{"title":"...","points":["...","..."]}, ...]`;
+IMPORTANT: Each slide must have detailed content. Use 6-8 points per slide with 20-30 words each.
+Return ONLY JSON array: [{"title":"...","points":["point1","point2","point3","point4","point5","point6"]},...]`;
 
     let slides: Slide[] | null = null;
     let rawContent = '';
@@ -84,7 +84,7 @@ Return ONLY JSON array: [{"title":"...","points":["...","..."]}, ...]`;
             { role: 'user', content: prompt },
           ],
           temperature: 0.4,
-          max_tokens: 4000,
+          max_tokens: 5000,
         });
         rawContent = completion.choices[0]?.message?.content || '';
         slides = tryParseSlides(rawContent);
