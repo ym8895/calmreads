@@ -45,6 +45,7 @@ export async function fetchAISlides(summary: AISummary, book?: Book): Promise<Sl
       summary,
       bookTitle: book?.title,
       bookAuthor: book?.author,
+      bookId: book?.id,
     }),
   });
   if (!res.ok) {
@@ -73,6 +74,7 @@ export async function fetchAIStory(book: Book): Promise<AIStory> {
       author: book.author,
       description: book.description,
       categories: book.categories,
+      bookId: book.id,
     }),
   });
   if (!res.ok) {
