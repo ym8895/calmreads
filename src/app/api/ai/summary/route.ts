@@ -64,17 +64,16 @@ export async function POST(request: NextRequest) {
 
     const zai = await getAI();
 
-    const prompt = `Write a comprehensive book summary for "${title}" by ${author}. Description: ${description || 'N/A'}
+    const prompt = `Write a detailed summary for "${title}" by ${author}. Description: ${description || 'N/A'}
 
-IMPORTANT: You MUST include ALL 4 fields. Each bullet point must have actual content, not generic text.
+Make this summary informative with real content about the book:
+- Introduction: 100+ words about the book
+- Core Ideas: 4 meaningful ideas from the book
+- Key Takeaways: 4 useful lessons readers can apply
+- Full Text: A comprehensive 300+ word narrative
 
-Return ONLY valid JSON (no markdown):
-{
-  "introduction": "100-150 word introduction about this specific book",
-  "coreIdeas": ["40-60 word idea 1", "40-60 word idea 2", "40-60 word idea 3", "40-60 word idea 4"],
-  "keyTakeaways": ["20-30 word takeaway 1", "20-30 word takeaway 2", "20-30 word takeaway 3", "20-30 word takeaway 4"],
-  "fullText": "400-500 word detailed narrative summary"
-}`;
+Return ONLY valid JSON:
+{"introduction":"...","coreIdeas":["...","...","...","..."],"keyTakeaways":["...","...","...","..."],"fullText":"..."}`;
 
     let summary: AISummary | null = null;
 
@@ -86,7 +85,7 @@ Return ONLY valid JSON (no markdown):
           { role: 'user', content: prompt },
         ],
         temperature: 0.5,
-        max_tokens: 2500,
+        max_tokens: 3500,
       });
       const rawContent = completion.choices[0]?.message?.content || '';
       summary = tryParseJSON(rawContent);

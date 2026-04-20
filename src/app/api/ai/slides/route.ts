@@ -69,18 +69,14 @@ export async function POST(request: NextRequest) {
     const zai = await getAI();
     const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
 
-    const prompt = `Create exactly 10 slides for "${bookTitle}" by ${bookAuthor || 'Unknown'}.
+    const prompt = `Create 10 detailed slides for "${bookTitle}" by ${bookAuthor || 'Unknown'}.
 
-Each slide must have:
-- A descriptive title
-- 6 bullet points (each 15-25 words)
+Make each slide informative with real content from the book. Each slide should have:
+- title: Clear descriptive title
+- points: Array of 6 meaningful points
 
-Return ONLY valid JSON array (no markdown):
-[
-  {"title":"Slide Title","points":["point1","point2","point3","point4","point5","point6"]},
-  {"title":"Slide Title","points":["point1","point2","point3","point4","point5","point6"]}
-  ... (10 slides total)
-]`;
+Example format (return ONLY this, no markdown):
+[{"title":"Title","points":["detailed point 1","detailed point 2","detailed point 3","detailed point 4","detailed point 5","detailed point 6"]},...]`;
 
     let slides: Slide[] | null = null;
 
@@ -92,7 +88,7 @@ Return ONLY valid JSON array (no markdown):
           { role: 'user', content: prompt },
         ],
         temperature: 0.4,
-        max_tokens: 2500,
+        max_tokens: 3500,
       });
       const rawContent = completion.choices[0]?.message?.content || '';
       slides = tryParseSlides(rawContent);

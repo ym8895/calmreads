@@ -73,22 +73,13 @@ export async function POST(request: NextRequest) {
 
     const prompt = `Write an engaging story about "${title}" by ${author}. Description: ${description || 'N/A'}
 
-The story must include:
-- Introduction: 50-100 words setting up the story
+Create an engaging narrative with rich details:
+- Introduction: Set the scene (50+ words)
 - 4 Chapters: Beginning, Journey, Climax, Resolution
-- Each chapter: 150-200 words of detailed narrative
+- Each chapter should be a meaningful story (not placeholders)
 
-Return ONLY valid JSON (no markdown):
-{
-  "title":"The Story of ${title}",
-  "introduction":"detailed intro...",
-  "chapters":[
-    {"number":1,"title":"Beginning","content":"150-200 words..."},
-    {"number":2,"title":"Journey","content":"150-200 words..."},
-    {"number":3,"title":"Climax","content":"150-200 words..."},
-    {"number":4,"title":"Resolution","content":"150-200 words..."}
-  ]
-}`;
+Return ONLY valid JSON:
+{"title":"The Story of ${title}","introduction":"intro...","chapters":[{"number":1,"title":"Beginning","content":"detailed story..."},{"number":2,"title":"Journey","content":"detailed story..."},{"number":3,"title":"Climax","content":"detailed story..."},{"number":4,"title":"Resolution","content":"detailed story..."}]}`;
 
     let story: AIStory | null = null;
 
@@ -100,7 +91,7 @@ Return ONLY valid JSON (no markdown):
           { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        max_tokens: 2500,
+        max_tokens: 3500,
       });
       const rawContent = completion.choices[0]?.message?.content || '';
       story = tryParseJSON(rawContent);
