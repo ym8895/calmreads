@@ -41,7 +41,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const [speed, setSpeed] = useState(1);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string>('');
+  const [selectedVoice, setSelectedVoice] = useState<string>('Microsoft Natasha - English (United States)');
   const [isSupported] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !!window.speechSynthesis;
@@ -113,14 +113,10 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
     utt.rate = speed;
     utt.volume = isMuted ? 0 : 1;
 
-    // Use selected voice or best available
+    // Use best available English voice - prioritize quality voices across browsers
     const availableVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
-    const voice = selectedVoice 
-      ? availableVoices.find(v => v.name === selectedVoice)
-      : availableVoices.find(v => v.name.includes('Natasha'))
-      || availableVoices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en') && /Zira|David/i.test(v.name))
-      || availableVoices.find(v => v.lang.startsWith('en') && /Google|Default|Samantha/i.test(v.name))
-      || availableVoices.find(v => v.lang.startsWith('en') && !v.name.includes('Off'))
+    const voice = availableVoices.find(v => v.lang.startsWith('en') && /Samantha|Natasha|Zira|David|Google|Default/i.test(v.name))
+      || availableVoices.find(v => v.lang.startsWith('en'))
       || availableVoices[0];
     if (voice) utt.voice = voice;
 
