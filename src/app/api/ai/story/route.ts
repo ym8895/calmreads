@@ -94,7 +94,7 @@ Return JSON: {"title":"The Story","introduction":"intro text","chapters":[{"numb
         await updateBookContent(bookId, { story: JSON.stringify(story) });
       }
     } catch (err) {
-      console.error('[Story] AI error:', err);
+      // Silent fail - will use fallback
     }
 
     if (!story) story = buildFallback(title, author, '');

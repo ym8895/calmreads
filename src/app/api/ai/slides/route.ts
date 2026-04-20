@@ -69,9 +69,10 @@ export async function POST(request: NextRequest) {
     const zai = await getAI();
     const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
 
-    const prompt = `Create 5 slides for ${bookRef}.
+    const prompt = `Create 8 detailed slides for ${bookRef}.
+Each slide should have 6-8 sentence points (15-25 words each).
 Ideas: ${summary.coreIdeas.join(' | ')}
-Return JSON: [{"title":"...","points":["point1","point2","point3","point4"]},...]`;
+Return JSON array: [{"title":"Slide Title","points":["detailed point 1","detailed point 2","detailed point 3","detailed point 4","detailed point 5","detailed point 6"]},...]`;
 
     let slides: Slide[] | null = null;
 
@@ -92,7 +93,7 @@ Return JSON: [{"title":"...","points":["point1","point2","point3","point4"]},...
         await updateBookContent(bookId, { slides: JSON.stringify(slides) });
       }
     } catch (err) {
-      console.error('[Slides] AI error:', err);
+      // Silent fail - will use fallback
     }
 
     if (!slides) slides = buildFallbackSlides('', bookTitle);

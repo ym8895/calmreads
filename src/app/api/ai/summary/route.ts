@@ -64,8 +64,12 @@ export async function POST(request: NextRequest) {
 
     const zai = await getAI();
 
-    const prompt = `Summarize "${title}" by ${author}. ${description || ''}
-Return JSON: {"introduction":"50 words","coreIdeas":["40 words","40 words","40 words","40 words"],"keyTakeaways":["20 words","20 words"],"fullText":"100 words"}`;
+    const prompt = `Write a detailed summary for "${title}" by ${author}. ${description || ''}
+Return JSON with:
+- introduction: 100-150 words
+- coreIdeas: 4 ideas (40-60 words each)
+- keyTakeaways: 4 takeaways (20-30 words each)
+- fullText: 400-500 words`;
 
     let summary: AISummary | null = null;
 
@@ -86,7 +90,7 @@ Return JSON: {"introduction":"50 words","coreIdeas":["40 words","40 words","40 w
         await updateBookContent(bookId, { summary: JSON.stringify(summary) });
       }
     } catch (err) {
-      console.error('[Summary] AI error:', err);
+      // Silent fail - will use fallback
     }
 
     if (!summary) {
