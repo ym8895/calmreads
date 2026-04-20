@@ -82,7 +82,7 @@ Return JSON: {"title":"The Story","introduction":"intro text","chapters":[{"numb
           { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        max_tokens: 250,
+        max_tokens: 1000,
       });
       const rawContent = completion.choices[0]?.message?.content || '';
       story = tryParseJSON(rawContent);

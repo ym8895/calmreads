@@ -80,7 +80,7 @@ Return JSON: [{"title":"...","points":["point1","point2","point3","point4"]},...
           { role: 'user', content: prompt },
         ],
         temperature: 0.4,
-        max_tokens: 250,
+        max_tokens: 1000,
       });
       const rawContent = completion.choices[0]?.message?.content || '';
       slides = tryParseSlides(rawContent);
