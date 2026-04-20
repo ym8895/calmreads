@@ -5,6 +5,10 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUP
 
 if (!supabaseUrl || !supabaseKey) {
   console.warn('[Supabase] Missing credentials - AI caching disabled');
+  console.warn('[Supabase] URL:', supabaseUrl || 'MISSING');
+  console.warn('[Supabase] Key:', supabaseKey ? 'SET' : 'MISSING');
+} else {
+  console.log('[Supabase] Client initialized');
 }
 
 export const supabase = supabaseUrl && supabaseKey
@@ -100,12 +104,20 @@ export function saveToMemory(bookId: string, data: BookContent): void {
 }
 
 export async function getBookContent(bookId: string): Promise<BookContent | null> {
+  console.log('[Supabase] getBookContent:', bookId);
+  
   let content = getFromMemory(bookId);
-  if (content) return content;
+  if (content) {
+    console.log('[Supabase] Found in memory');
+    return content;
+  }
 
   content = await getFromSupabase(bookId);
   if (content) {
+    console.log('[Supabase] Found in DB');
     saveToMemory(bookId, content);
+  } else {
+    console.log('[Supabase] Not found');
   }
 
   return content;

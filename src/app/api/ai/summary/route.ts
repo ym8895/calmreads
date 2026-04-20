@@ -77,7 +77,7 @@ Return JSON: {"introduction":"50 words","coreIdeas":["40 words","40 words","40 w
           { role: 'user', content: prompt },
         ],
         temperature: 0.5,
-        max_tokens: 1000,
+        max_tokens: 2500,
       });
       const rawContent = completion.choices[0]?.message?.content || '';
       summary = tryParseJSON(rawContent);
