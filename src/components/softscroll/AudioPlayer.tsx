@@ -41,7 +41,7 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
   const [speed, setSpeed] = useState(1);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string>('Microsoft Natasha - English (United States)');
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
   const [isSupported] = useState(() => {
     if (typeof window === 'undefined') return false;
     return !!window.speechSynthesis;
@@ -63,7 +63,6 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
       if (availableVoices.length > 0) {
         setVoices(availableVoices);
         voicesRef.current = availableVoices;
-        console.log('Available voices:', availableVoices.map(v => v.name));
       }
     };
     loadVoices();
@@ -116,26 +115,14 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
 
     // Use selected voice or best available
     const availableVoices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
-    let voice: SpeechSynthesisVoice | undefined;
-    
-    if (selectedVoice) {
-      voice = availableVoices.find(v => v.name === selectedVoice);
-    }
-    
-    if (!voice) {
-      const preferredVoices = ['Samantha', 'Natasha', 'Zira', 'Google US English', 'Microsoft Eva', 'Aria', 'Hazel', 'Susan'];
-      voice = availableVoices.find(v => 
-        v.lang.startsWith('en') && preferredVoices.some(pv => v.name.includes(pv))
-      );
-    }
-    if (!voice) {
-      voice = availableVoices.find(v => v.lang.startsWith('en'));
-    }
-    if (!voice) voice = availableVoices[0];
-    if (voice) {
-      console.log('Using voice:', voice.name);
-      utt.voice = voice;
-    }
+    const voice = selectedVoice 
+      ? availableVoices.find(v => v.name === selectedVoice)
+      : availableVoices.find(v => v.name.includes('Natasha'))
+      || availableVoices.find(v => v.name.includes('Microsoft') && v.lang.startsWith('en') && /Zira|David/i.test(v.name))
+      || availableVoices.find(v => v.lang.startsWith('en') && /Google|Default|Samantha/i.test(v.name))
+      || availableVoices.find(v => v.lang.startsWith('en') && !v.name.includes('Off'))
+      || availableVoices[0];
+    if (voice) utt.voice = voice;
 
     utt.onstart = () => {
       if (!mountedRef.current) return;

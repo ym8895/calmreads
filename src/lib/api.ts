@@ -27,6 +27,7 @@ export async function fetchAISummary(book: Book): Promise<AISummary> {
       author: book.author,
       description: book.description,
       categories: book.categories,
+      bookId: book.id,
     }),
   });
   if (!res.ok) {

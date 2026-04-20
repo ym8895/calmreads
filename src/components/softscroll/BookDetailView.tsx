@@ -18,15 +18,23 @@ import { SlideCarousel } from './SlideCarousel';
 type AITab = 'summary' | 'story' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl, getAICache, setAICache, story, setStory } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [localStory, setLocalStory] = useState<AIStory | null>(null);
 
   const isSaved = currentBook ? savedBooks.some((b) => b.id === currentBook.id) : false;
 
-  // Stop audio and clear errors when switching to a different book
+  useEffect(() => {
+    if (!currentBook) return;
+    const cached = getAICache(currentBook.id);
+    if (cached) {
+      if (cached.summary) setSummary(cached.summary);
+      if (cached.slides) setSlides(cached.slides);
+      if (cached.story) setStory(cached.story);
+    }
+  }, [currentBook?.id]);
+
   useEffect(() => {
     setError(null);
     return () => {
@@ -36,12 +44,18 @@ export function BookDetailView() {
 
   const generateSummary = async () => {
     if (!currentBook) return;
+    const cached = getAICache(currentBook.id);
+    if (cached?.summary) {
+      setSummary(cached.summary);
+      return;
+    }
     if (summary) return;
     setIsGenerating(true);
     setError(null);
     try {
       const data = await fetchAISummary(currentBook);
       setSummary(data);
+      setAICache(currentBook.id, { summary: data });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate summary. Please try again.');
     } finally {
@@ -50,12 +64,19 @@ export function BookDetailView() {
   };
 
   const generateSlides = async () => {
-    if (!summary || slides) return;
+    if (!summary || !currentBook) return;
+    const cached = getAICache(currentBook.id);
+    if (cached?.slides) {
+      setSlides(cached.slides);
+      return;
+    }
+    if (slides) return;
     setIsGenerating(true);
     setError(null);
     try {
       const data = await fetchAISlides(summary, currentBook);
       setSlides(data);
+      setAICache(currentBook.id, { summary, slides: data });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate slides. Please try again.');
     } finally {
@@ -83,14 +104,19 @@ export function BookDetailView() {
 
   const generateStory = async () => {
     if (!currentBook) return;
-    console.log('Generating story for:', currentBook.title);
+    const cached = getAICache(currentBook.id);
+    if (cached?.story) {
+      setStory(cached.story);
+      return;
+    }
+    if (story) return;
+    setIsGenerating(true);
     setError(null);
     try {
       const data = await fetchAIStory(currentBook);
-      console.log('Story received:', data);
-      setLocalStory(data);
+      setStory(data);
+      setAICache(currentBook.id, { story: data });
     } catch (err) {
-      console.error('Story error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -102,13 +128,7 @@ export function BookDetailView() {
     else if (activeTab === 'slides' && summary) generateSlides();
     else if (activeTab === 'audio' && summary) generateAudio();
     else if (activeTab === 'story' && currentBook) generateStory();
-  }, [activeTab, currentBook?.id]);
-
-  useEffect(() => {
-    if (activeTab === 'summary' && currentBook && !summary) {
-      generateSummary();
-    }
-  }, [activeTab, summary, currentBook?.id]);
+  }, [activeTab, currentBook?.id, summary, slides, story]);
 
   if (!currentBook) return null;
 
@@ -358,7 +378,7 @@ export function BookDetailView() {
               )}
 
               {/* Story Tab */}
-              {!isGenerating && activeTab === 'story' && localStory && (
+              {!isGenerating && activeTab === 'story' && story && (
                 <motion.div
                   key="story-content"
                   initial={{ opacity: 0, y: 10 }}
@@ -368,12 +388,12 @@ export function BookDetailView() {
                   className="space-y-6"
                 >
                   <div>
-                    <h2 className="text-xl font-bold text-foreground/90 mb-4">{localStory?.title || 'Book Story'}</h2>
+                    <h2 className="text-xl font-bold text-foreground/90 mb-4">{story?.title || 'Book Story'}</h2>
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6">
-                      {localStory?.introduction || 'Loading story...'}
+                      {story?.introduction || 'Loading story...'}
                     </p>
                   </div>
-                  {localStory?.chapters && localStory.chapters.length > 0 && localStory.chapters.map((chapter: { number: number; title: string; content: string }) => (
+                  {story?.chapters && story.chapters.length > 0 && story.chapters.map((chapter: { number: number; title: string; content: string }) => (
                     <div key={chapter.number} className="border-l-2 border-[#8FB9A8] pl-4">
                       <h3 className="text-lg font-semibold text-foreground/90 mb-2">
                         {chapter.number}. {chapter.title}
