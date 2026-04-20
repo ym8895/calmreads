@@ -71,9 +71,24 @@ export async function POST(request: NextRequest) {
 
     const zai = await getAI();
 
-    const prompt = `Write a short story about "${title}" by ${author}.
-Description: ${description || 'N/A'}
-Return JSON: {"title":"The Story","introduction":"intro text","chapters":[{"number":1,"title":"Beginning","content":"..."},{"number":2,"title":"Journey","content":"..."},{"number":3,"title":"Climax","content":"..."},{"number":4,"title":"Resolution","content":"..."}]}`;
+    const prompt = `Write an engaging story about "${title}" by ${author}. Description: ${description || 'N/A'}
+
+The story must include:
+- Introduction: 50-100 words setting up the story
+- 4 Chapters: Beginning, Journey, Climax, Resolution
+- Each chapter: 150-200 words of detailed narrative
+
+Return ONLY valid JSON (no markdown):
+{
+  "title":"The Story of ${title}",
+  "introduction":"detailed intro...",
+  "chapters":[
+    {"number":1,"title":"Beginning","content":"150-200 words..."},
+    {"number":2,"title":"Journey","content":"150-200 words..."},
+    {"number":3,"title":"Climax","content":"150-200 words..."},
+    {"number":4,"title":"Resolution","content":"150-200 words..."}
+  ]
+}`;
 
     let story: AIStory | null = null;
 

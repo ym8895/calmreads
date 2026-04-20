@@ -69,10 +69,18 @@ export async function POST(request: NextRequest) {
     const zai = await getAI();
     const bookRef = bookTitle ? `"${bookTitle}"${bookAuthor ? ` by ${bookAuthor}` : ''}` : 'this book';
 
-    const prompt = `Create 8 detailed slides for ${bookRef}.
-Each slide should have 6-8 sentence points (15-25 words each).
-Ideas: ${summary.coreIdeas.join(' | ')}
-Return JSON array: [{"title":"Slide Title","points":["detailed point 1","detailed point 2","detailed point 3","detailed point 4","detailed point 5","detailed point 6"]},...]`;
+    const prompt = `Create exactly 10 slides for "${bookTitle}" by ${bookAuthor || 'Unknown'}.
+
+Each slide must have:
+- A descriptive title
+- 6 bullet points (each 15-25 words)
+
+Return ONLY valid JSON array (no markdown):
+[
+  {"title":"Slide Title","points":["point1","point2","point3","point4","point5","point6"]},
+  {"title":"Slide Title","points":["point1","point2","point3","point4","point5","point6"]}
+  ... (10 slides total)
+]`;
 
     let slides: Slide[] | null = null;
 
