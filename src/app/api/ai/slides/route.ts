@@ -48,10 +48,13 @@ function buildFallbackSlides(raw: string, title?: string): Slide[] {
 
 export async function POST(request: NextRequest) {
   try {
-    const { summary, bookTitle, bookAuthor, bookId } = await request.json() as {
+    const body = await request.json() as {
       summary: { fullText: string; introduction: string; coreIdeas: string[]; keyTakeaways: string[] };
       bookTitle?: string; bookAuthor?: string; bookId?: string;
     };
+    const { summary, bookTitle, bookAuthor } = body;
+    let bookId = body.bookId;
+    
     if (!summary?.fullText) return NextResponse.json({ error: 'Summary text required' }, { status: 400 });
     if (!bookId && bookTitle) bookId = `${bookTitle}-${bookAuthor}`.toLowerCase().replace(/\s+/g, '-');
 

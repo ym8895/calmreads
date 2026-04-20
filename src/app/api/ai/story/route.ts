@@ -54,9 +54,12 @@ function buildFallback(title: string, author: string, raw: string): AIStory {
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, author, description, bookId } = await request.json() as {
+    const body = await request.json() as {
       title: string; author: string; description?: string; bookId?: string; categories?: string[];
     };
+    const { title, author, description } = body;
+    let bookId = body.bookId;
+    
     if (!title || !author) return NextResponse.json({ error: 'Book title and author required' }, { status: 400 });
     if (!bookId) bookId = `${title}-${author}`.toLowerCase().replace(/\s+/g, '-');
 
