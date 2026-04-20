@@ -4,14 +4,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AppView, Book, AISummary, Slide, AIStory } from './types';
 
-interface AICache {
-  bookId: string;
-  summary: AISummary | null;
-  slides: Slide[] | null;
-  story: AIStory | null;
-  generatedAt: string;
-}
-
 interface SoftScrollState {
   currentView: AppView;
   selectedInterests: string[];
@@ -22,7 +14,6 @@ interface SoftScrollState {
   story: AIStory | null;
   slides: Slide[] | null;
   audioUrl: string | null;
-  aiCache: Record<string, AICache>;
   isLoading: boolean;
   readerSettings: {
     fontSize: number;
@@ -40,15 +31,13 @@ interface SoftScrollState {
   setStory: (story: AIStory | null) => void;
   setSlides: (slides: Slide[] | null) => void;
   setAudioUrl: (url: string | null) => void;
-  setAICache: (bookId: string, data: { summary?: AISummary | null; slides?: Slide[] | null; story?: AIStory | null }) => void;
-  getAICache: (bookId: string) => AICache | null;
   setIsLoading: (loading: boolean) => void;
   updateReaderSettings: (settings: Partial<SoftScrollState['readerSettings']>) => void;
 }
 
 export const useSoftScrollStore = create<SoftScrollState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       currentView: 'interests',
       selectedInterests: [],
       recommendedBooks: [],
@@ -57,7 +46,6 @@ export const useSoftScrollStore = create<SoftScrollState>()(
       summary: null,
       slides: null,
       audioUrl: null,
-      aiCache: {},
       isLoading: false,
       readerSettings: {
         fontSize: 18,
@@ -84,21 +72,6 @@ export const useSoftScrollStore = create<SoftScrollState>()(
       setSummary: (summary) => set({ summary }),
       setSlides: (slides) => set({ slides }),
       setAudioUrl: (url) => set({ audioUrl: url }),
-      setStory: (story) => set({ story }),
-      setAICache: (bookId, data) =>
-        set((state) => ({
-          aiCache: {
-            ...state.aiCache,
-            [bookId]: {
-              bookId,
-              summary: data.summary ?? state.aiCache[bookId]?.summary ?? null,
-              slides: data.slides ?? state.aiCache[bookId]?.slides ?? null,
-              story: data.story ?? state.aiCache[bookId]?.story ?? null,
-              generatedAt: new Date().toISOString(),
-            },
-          },
-        })),
-      getAICache: (bookId) => get().aiCache[bookId] || null,
       setIsLoading: (loading) => set({ isLoading: loading }),
       updateReaderSettings: (settings) =>
         set((state) => ({
@@ -111,7 +84,6 @@ export const useSoftScrollStore = create<SoftScrollState>()(
         selectedInterests: state.selectedInterests,
         savedBooks: state.savedBooks,
         readerSettings: state.readerSettings,
-        aiCache: state.aiCache,
       }),
     }
   )

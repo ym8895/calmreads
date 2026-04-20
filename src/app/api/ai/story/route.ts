@@ -3,27 +3,27 @@ import type { AIStory } from '@/lib/types';
 import { getAI } from '@/lib/ai-client';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
-const DEFAULT_STORY: AIStory = {
-  title: 'Story Unavailable',
-  introduction: 'Story temporarily unavailable.',
-  chapters: [
-    { number: 1, title: 'Error', content: 'Please try again later.' },
-  ],
-  fullStory: '',
-};
-
 function tryParseJSON(content: string): AIStory | null {
   let cleaned = content.trim();
   if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
   try {
     const parsed = JSON.parse(cleaned);
-    if (parsed.introduction || parsed.title) return parsed as AIStory;
+    // Handle nested JSON strings
+    if (typeof parsed.introduction === 'string' && parsed.introduction.startsWith('{')) {
+      const inner = JSON.parse(parsed.introduction);
+      return { ...inner, fullStory: parsed.fullStory || '' };
+    }
+    if (parsed.introduction && parsed.chapters) return parsed as AIStory;
   } catch {}
   const m = cleaned.match(/\{[\s\S]*\}/);
   if (m) {
     try {
       const parsed = JSON.parse(m[0]);
-      if (parsed.introduction || parsed.title) return parsed as AIStory;
+      if (typeof parsed.introduction === 'string' && parsed.introduction.startsWith('{')) {
+        const inner = JSON.parse(parsed.introduction);
+        return { ...inner, fullStory: parsed.fullStory || '' };
+      }
+      if (parsed.introduction && parsed.chapters) return parsed as AIStory;
     } catch {}
   }
   return null;
@@ -35,10 +35,10 @@ function buildFallback(title: string, author: string, raw: string): AIStory {
     title: `The Story of ${title}`,
     introduction: paras[0]?.trim() || `Welcome to the story of "${title}" by ${author}.`,
     chapters: [
-      { number: 1, title: 'Beginning', content: paras.slice(1, 4).join('\n\n') || 'Story starts here.' },
-      { number: 2, title: 'Journey', content: paras.slice(4, 7).join('\n\n') || 'The journey continues.' },
-      { number: 3, title: 'Climax', content: paras.slice(7, 10).join('\n\n') || 'The climax approaches.' },
-      { number: 4, title: 'Resolution', content: paras.slice(10, 13).join('\n\n') || 'The story concludes.' },
+      { number: 1, title: 'Beginning', content: paras.slice(1, 4).join('\n\n') },
+      { number: 2, title: 'Journey', content: paras.slice(4, 7).join('\n\n') },
+      { number: 3, title: 'Climax', content: paras.slice(7, 10).join('\n\n') },
+      { number: 4, title: 'Resolution', content: paras.slice(10, 13).join('\n\n') },
     ],
     fullStory: raw.trim().slice(0, 10000),
   };
@@ -49,58 +49,63 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as {
       title: string; author: string; description?: string; bookId?: string; categories?: string[];
     };
-    const { title, author, description } = body;
-    let bookId = body.bookId;
-    
-    if (!title || !author) return NextResponse.json({ error: 'Book title and author required' }, { status: 400 });
-    if (!bookId) bookId = `${title}-${author}`.toLowerCase().replace(/\s+/g, '-');
+    const { title, author, description, bookId, categories } = body;
+    if (!title || !author) {
+      return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
+    }
 
-    const cached = await getBookContent(bookId);
+    const useBookId = bookId || `${title}-${author}`.toLowerCase().replace(/\s+/g, '-');
+    const cached = await getBookContent(useBookId);
     if (cached?.story) {
       const parsed = tryParseJSON(cached.story);
       if (parsed) return NextResponse.json(parsed);
     }
 
+    const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}` : '';
     const zai = await getAI();
 
-    const prompt = `Write an engaging story about "${title}" by ${author}. Description: ${description || 'N/A'}
+    const prompt = `Write a short story about "${title}" by ${author}. 
+Description: ${description || 'No description'}${genreHint}
 
-Create an engaging narrative with rich details:
-- Introduction: Set the scene (50+ words)
-- 4 Chapters: Beginning, Journey, Climax, Resolution
-- Each chapter should be a meaningful story (not placeholders)
-
-Return ONLY valid JSON:
-{"title":"The Story of ${title}","introduction":"intro...","chapters":[{"number":1,"title":"Beginning","content":"detailed story..."},{"number":2,"title":"Journey","content":"detailed story..."},{"number":3,"title":"Climax","content":"detailed story..."},{"number":4,"title":"Resolution","content":"detailed story..."}]}`;
+Include 4 chapters: Beginning, Journey, Climax, Resolution.
+Return JSON with: title, introduction, chapters (array with number, title, content).`;
 
     let story: AIStory | null = null;
+    let rawContent = '';
 
-    try {
-      const completion = await zai.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
-        messages: [
-          { role: 'system', content: 'Write engaging stories with chapters. JSON only.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 3500,
-      });
-      const rawContent = completion.choices[0]?.message?.content || '';
-      story = tryParseJSON(rawContent);
-
-      if (story) {
-        await updateBookContent(bookId, { story: JSON.stringify(story) });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const completion = await zai.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 3000,
+        });
+        rawContent = completion.choices[0]?.message?.content || '';
+        story = tryParseJSON(rawContent);
+        if (story) break;
+      } catch (err) {
+        console.error(`[Story] Attempt ${attempt + 1}:`, err);
       }
-    } catch (err) {
-      // Silent fail - will use fallback
     }
 
-    if (!story) story = buildFallback(title, author, '');
-    if (!story) return NextResponse.json(DEFAULT_STORY);
+    if (!story && rawContent.length > 50) {
+      story = buildFallback(title, author, rawContent);
+    }
+    if (!story) {
+      return NextResponse.json({ error: 'Failed to generate story. Please try again.' }, { status: 500 });
+    }
+
+    if (story) {
+      await updateBookContent(useBookId, { story: JSON.stringify(story) });
+    }
 
     return NextResponse.json(story);
   } catch (error) {
     console.error('[Story API] Fatal:', error);
-    return NextResponse.json(DEFAULT_STORY);
+    return NextResponse.json({ error: 'Failed to generate story. Please try again later.' }, { status: 500 });
   }
 }

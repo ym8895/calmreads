@@ -43,7 +43,6 @@ async function getFromSupabase(bookId: string): Promise<BookContent | null> {
     if (error || !data) return null;
     return data as BookContent;
   } catch (err) {
-    console.error('[Supabase] Get error:', err);
     return null;
   }
 }
@@ -71,13 +70,9 @@ async function saveToSupabase(
         updated_at: new Date().toISOString(),
       }, { onConflict: 'book_id' });
 
-    if (error) {
-      console.error('[Supabase] Save error:', error);
-      return false;
-    }
+    if (error) return false;
     return true;
   } catch (err) {
-    console.error('[Supabase] Save error:', err);
     return false;
   }
 }
@@ -116,9 +111,7 @@ export async function updateBookContent(
   const saved = await saveToSupabase(bookId, updates);
   if (saved && supabase) {
     const existing = await getFromSupabase(bookId);
-    if (existing) {
-      saveToMemory(bookId, existing);
-    }
+    if (existing) saveToMemory(bookId, existing);
   }
   return saved;
 }
