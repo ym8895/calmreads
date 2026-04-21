@@ -14,6 +14,7 @@ function tryParseJSON(content: string): AIStory | null {
       return { ...inner, fullStory: parsed.fullStory || '' };
     }
     if (parsed.introduction && parsed.chapters) return parsed as AIStory;
+    if (parsed.intro && parsed.chapters) return { ...parsed, introduction: parsed.intro } as AIStory;
   } catch {}
   const m = cleaned.match(/\{[\s\S]*\}/);
   if (m) {
@@ -24,6 +25,7 @@ function tryParseJSON(content: string): AIStory | null {
         return { ...inner, fullStory: parsed.fullStory || '' };
       }
       if (parsed.introduction && parsed.chapters) return parsed as AIStory;
+      if (parsed.intro && parsed.chapters) return { ...parsed, introduction: parsed.intro } as AIStory;
     } catch {}
   }
   return null;
@@ -65,11 +67,11 @@ export async function POST(request: NextRequest) {
     const zai = await getAI();
 
     const prompt = `Write a story about "${title}" by ${author}. 
-Description: ${description || 'N/A'}${genreHint}
+Description: ${description || 'N/A'}
 
-Include 4 chapters: Beginning, Journey, Climax, Resolution.
-Each chapter with meaningful content.
-Return JSON: {"title":"...","introduction":"short intro","chapters":[{"number":1,"title":"Beginning","content":"..."},...]}`;
+IMPORTANT: Write detailed content for each of the 4 chapters.
+Each chapter content: 100-150 words.
+Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"number":1,"title":"Beginning","content":"detailed content..."},{"number":2,"title":"Journey","content":"..."},{"number":3,"title":"Climax","content":"..."},{"number":4,"title":"Resolution","content":"..."}]}`;
 
     let story: AIStory | null = null;
     let rawContent = '';

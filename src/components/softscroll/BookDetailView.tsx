@@ -83,14 +83,13 @@ export function BookDetailView() {
 
   const generateStory = async () => {
     if (!currentBook) return;
-    console.log('Generating story for:', currentBook.title);
+    if (localStory) return;
+    setIsGenerating(true);
     setError(null);
     try {
       const data = await fetchAIStory(currentBook);
-      console.log('Story received:', data);
       setLocalStory(data);
     } catch (err) {
-      console.error('Story error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -267,6 +266,7 @@ export function BookDetailView() {
                     {activeTab === 'summary' && 'Generating AI summary...'}
                     {activeTab === 'slides' && 'Creating book slides...'}
                     {activeTab === 'audio' && 'Preparing audio player...'}
+                    {activeTab === 'story' && 'Writing story...'}
                   </p>
                   <p className="text-muted-foreground/60 text-xs mt-2">
                     This may take a moment
