@@ -59,11 +59,9 @@ export async function POST(request: NextRequest) {
         if (parsed) return NextResponse.json(parsed);
       }
 }
-
+    
     const zai = await getAI();
-    const bookTitle = body.bookTitle || '';
-    const bookAuthor = body.bookAuthor || '';
-
+    
     const prompt = `Create 8 slides for "${bookTitle}" by ${bookAuthor}.
 Use ideas: ${summary.coreIdeas.join(', ')}
 Each slide: title + 5 meaningful points (15-20 words).
