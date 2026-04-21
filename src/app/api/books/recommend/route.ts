@@ -120,9 +120,9 @@ export async function POST(request: NextRequest) {
     await Promise.all(fetchPromises);
 
     const uniqueBooks = deduplicateBooks(allBooks);
-    // Shuffle slightly to add variety, then cap at 100
+    // Shuffle slightly to add variety, then cap at 200
     const shuffled = uniqueBooks.sort(() => Math.random() - 0.5);
-    const topBooks = shuffled.slice(0, 100);
+    const topBooks = shuffled.slice(0, 200);
 
     BOOK_CACHE.set(cacheKey, { data: topBooks, timestamp: Date.now() });
 
