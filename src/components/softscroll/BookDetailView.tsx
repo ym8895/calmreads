@@ -100,8 +100,8 @@ export function BookDetailView() {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
     else if (activeTab === 'audio' && summary) generateAudio();
-    else if (activeTab === 'story' && currentBook) generateStory();
-  }, [activeTab, currentBook?.id]);
+    else if (activeTab === 'story' && currentBook && !localStory) generateStory();
+  }, [activeTab, currentBook?.id, summary, slides]);
 
   useEffect(() => {
     if (activeTab === 'summary' && currentBook && !summary) {
