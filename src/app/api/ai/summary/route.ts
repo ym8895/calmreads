@@ -56,11 +56,12 @@ export async function POST(request: NextRequest) {
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}.` : '';
     const zai = await getAI();
 
-    const prompt = `Write a concise summary for "${title}" by ${author}.
-About: ${description || 'No description'}${genreHint}
+    const prompt = `Write a detailed summary for "${title}" by ${author}.
+Description: ${description || 'No description'}${genreHint}
 
+Important: Be specific to THIS book.
 Return valid JSON:
-{"introduction":"80-100 word intro","coreIdeas":["idea 1","idea 2","idea 3","idea 4"],"keyTakeaways":["takeaway 1","takeaway 2","takeaway 3","takeaway 4"],"fullText":"up to 300 word narrative about ${title}"}
+{"introduction":"150 word intro","coreIdeas":["idea 1 about book (50 words)","idea 2","idea 3","idea 4"],"keyTakeaways":["takeaway 1 (35-40 words)","takeaway 2","takeaway 3","takeaway 4"],"fullText":"up to 500 word summary"}
 JSON only, no markdown.`;
 
     let summary: AISummary | null = null;
@@ -75,7 +76,7 @@ JSON only, no markdown.`;
             { role: 'user', content: prompt },
           ],
           temperature: 0.5,
-          max_tokens: 1500,
+          max_tokens: 1900,
         });
         rawContent = completion.choices[0]?.message?.content || '';
         summary = tryParseJSON(rawContent);
