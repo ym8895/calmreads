@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 import type { AppView, Book, AISummary, Slide, AIStory } from './types';
 
 interface SoftScrollState {
-  currentView: AppView;
+  currentView: AppView | 'landing';
   selectedInterests: string[];
   recommendedBooks: Book[];
   currentBook: Book | null;
@@ -38,7 +38,7 @@ interface SoftScrollState {
 export const useSoftScrollStore = create<SoftScrollState>()(
   persist(
     (set) => ({
-      currentView: 'interests',
+      currentView: 'landing',
       selectedInterests: [],
       recommendedBooks: [],
       currentBook: null,

@@ -12,6 +12,7 @@ import { DiscoverView } from '@/components/softscroll/DiscoverView';
 import { BookDetailView } from '@/components/softscroll/BookDetailView';
 import { ReaderView } from '@/components/softscroll/ReaderView';
 import { SavedBooksView } from '@/components/softscroll/SavedBooksView';
+import { LandingPage } from '@/components/softscroll/LandingPage';
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -22,6 +23,11 @@ const pageVariants = {
 function AppContent() {
   const { currentView } = useSoftScrollStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Show landing page if on landing view
+  if (currentView === 'landing') {
+    return <LandingPage />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex">
