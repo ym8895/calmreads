@@ -290,7 +290,9 @@ export function BookDetailView() {
                       Introduction
                     </h3>
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                      {summary.introduction}
+                      {typeof summary.introduction === 'string' && summary.introduction.startsWith('{') 
+                        ? JSON.parse(summary.introduction)?.introduction || summary.introduction 
+                        : summary.introduction}
                     </p>
                   </div>
 
