@@ -89,6 +89,10 @@ JSON only, no markdown.`;
         if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
           return NextResponse.json({ error: `AI error: ${e.message}` }, { status: 502 });
         }
+        if (attempt < 1) {
+          const waitMs = e.status === 429 ? 7000 : 2000;
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+        }
       }
     }
 

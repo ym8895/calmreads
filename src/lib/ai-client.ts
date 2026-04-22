@@ -87,6 +87,15 @@ async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMes
 
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) {
+    const promptFeedback = data.candidates?.[0]?.promptFeedback;
+    if (promptFeedback?.blockReason) {
+      throw Object.assign(new Error(`Gemini blocked: ${promptFeedback.blockReason}`), {
+        status: 400,
+        isRateLimit: false,
+      });
+    }
+  }
   const usage = data.usageMetadata || {};
 
   recordTokens('gemini', extractGeminiTokens(usage));
