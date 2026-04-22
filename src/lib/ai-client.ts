@@ -84,9 +84,12 @@ function logUsage(data: { provider: string; model: string; promptTokens: number;
   }
 }
 
-function extractTokens(usage: { total_tokens?: number; totalTokens?: number } | null | undefined): number {
-  if (!usage) return 0;
-  return (usage as { totalTokens?: number }).totalTokens || 0;
+function extractTokens(usage: Record<string, number> | null | undefined): { total: number; prompt: number; completion: number } {
+  if (!usage) return { total: 0, prompt: 0, completion: 0 };
+  const total = (usage as { total_tokens?: number; totalTokens?: number }).total_tokens || (usage as { totalTokens?: number }).totalTokens || 0;
+  const prompt = (usage as { prompt_tokens?: number }).prompt_tokens || 0;
+  const completion = (usage as { completion_tokens?: number }).completion_tokens || 0;
+  return { total, prompt, completion };
 }
 
 async function callGemini(messages: OpenAI.Chat.ChatCompletionMessageParam[], options: { temperature?: number; max_tokens?: number }, startTime: number) {
@@ -208,12 +211,13 @@ export async function chatWithFallback(
             });
             recordSuccess(next);
             const responseTime = Date.now() - startTime;
+            const usage = extractTokens(completion.usage as Record<string, number>);
             logUsage({
               provider: next.name,
               model: next.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
-              promptTokens: extractTokens(completion.usage as { totalTokens?: number }) - (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
-              completionTokens: (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
-              totalTokens: extractTokens(completion.usage as { totalTokens?: number }),
+              promptTokens: usage.prompt,
+              completionTokens: usage.completion,
+              totalTokens: usage.total,
               endpoint,
               responseTimeMs: responseTime,
               status: 'success',
@@ -242,12 +246,13 @@ export async function chatWithFallback(
 
     recordSuccess(selected);
     const responseTime = Date.now() - startTime;
+    const usage = extractTokens(completion.usage as Record<string, number>);
     logUsage({
       provider: selected.name,
       model: selected.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
-      promptTokens: extractTokens(completion.usage as { totalTokens?: number }) - (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
-      completionTokens: (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
-      totalTokens: extractTokens(completion.usage as { totalTokens?: number }),
+      promptTokens: usage.prompt,
+      completionTokens: usage.completion,
+      totalTokens: usage.total,
       endpoint,
       responseTimeMs: responseTime,
       status: 'success',
