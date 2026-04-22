@@ -80,8 +80,12 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
         rawContent = completion.choices[0]?.message?.content || '';
         slides = tryParseSlides(rawContent);
         if (slides) break;
-      } catch (err) {
+} catch (err) {
         console.error(`[Slides] Attempt ${attempt + 1}:`, err);
+        const e = err as Error & { status?: number };
+        if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
+          throw err;
+        }
       }
     }
 
@@ -89,7 +93,11 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
     if (!slides) return NextResponse.json({ error: 'Failed to generate slides. Please try again.' }, { status: 500 });
 
     if (slides && bookId) {
-      await updateBookContent(bookId, { slides: JSON.stringify(slides) });
+      try {
+        await updateBookContent(bookId, { slides: JSON.stringify(slides) });
+      } catch (err) {
+        console.error('[Slides] Cache save failed:', err);
+      }
     }
 
     return NextResponse.json(slides);

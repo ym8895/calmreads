@@ -89,6 +89,10 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
         if (story) break;
       } catch (err) {
         console.error(`[Story] Attempt ${attempt + 1}:`, err);
+        const e = err as Error & { status?: number };
+        if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
+          throw err;
+        }
       }
     }
 
@@ -100,7 +104,11 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
     }
 
     if (story) {
-      await updateBookContent(useBookId, { story: JSON.stringify(story) });
+      try {
+        await updateBookContent(useBookId, { story: JSON.stringify(story) });
+      } catch (err) {
+        console.error('[Story] Cache save failed:', err);
+      }
     }
 
     return NextResponse.json(story);
