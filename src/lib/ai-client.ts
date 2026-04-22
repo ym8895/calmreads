@@ -20,44 +20,52 @@ const mistral = new OpenAI({
   baseURL: 'https://api.mistral.ai/v1',
 });
 
-interface TokenUsage {
-  count: number;
-  windowStart: number;
+interface ProviderConfig {
+  name: 'groq' | 'deepseek' | 'mistral' | 'gemini';
+  client: OpenAI | null;
+  weight: number;
+  failures: number;
+  lastFailure: number;
 }
 
-const TPM_WINDOW_MS = 60_000;
+const PROVIDER_COOLDOWN_MS = 30_000;
 
-const tokenUsage: Record<string, TokenUsage> = {};
+const providers: ProviderConfig[] = [
+  { name: 'groq', client: groq, weight: 3, failures: 0, lastFailure: 0 },
+  { name: 'deepseek', client: deepseek, weight: 2, failures: 0, lastFailure: 0 },
+  { name: 'mistral', client: mistral, weight: 2, failures: 0, lastFailure: 0 },
+  { name: 'gemini', client: null, weight: 1, failures: 0, lastFailure: 0 },
+];
 
-function getTPMLimit(provider: 'groq' | 'deepseek' | 'gemini' | 'mistral'): number {
-  if (provider === 'groq') return 80_000;
-  if (provider === 'deepseek') return 200_000;
-  if (provider === 'mistral') return 100_000;
-  return 1_000_000;
-}
-
-function isNearLimit(provider: 'groq' | 'deepseek' | 'gemini' | 'mistral', tokens: number): boolean {
-  const limit = getTPMLimit(provider);
-  const usage = tokenUsage[provider] || { count: 0, windowStart: Date.now() };
-
-  if (Date.now() - usage.windowStart > TPM_WINDOW_MS) {
-    tokenUsage[provider] = { count: 0, windowStart: Date.now() };
-    return false;
-  }
-
-  return usage.count + tokens >= limit * 0.95;
-}
-
-function recordTokens(provider: 'groq' | 'deepseek' | 'gemini' | 'mistral', tokens: number): void {
+function getHealthyProviders(): ProviderConfig[] {
   const now = Date.now();
-  const usage = tokenUsage[provider] || { count: 0, windowStart: now };
+  return providers.filter(p => {
+    if (!p.client && p.name !== 'gemini') return false;
+    if (p.failures > 0 && now - p.lastFailure < PROVIDER_COOLDOWN_MS) return false;
+    return true;
+  });
+}
 
-  if (now - usage.windowStart > TPM_WINDOW_MS) {
-    tokenUsage[provider] = { count: tokens, windowStart: now };
-  } else {
-    usage.count += tokens;
-    tokenUsage[provider] = usage;
+function selectWeightedRandom(healthy: ProviderConfig[]): ProviderConfig {
+  const totalWeight = healthy.reduce((sum, p) => sum + p.weight, 0);
+  let random = Math.random() * totalWeight;
+
+  for (const provider of healthy) {
+    random -= provider.weight;
+    if (random <= 0) return provider;
   }
+
+  return healthy[0];
+}
+
+function recordFailure(provider: ProviderConfig): void {
+  provider.failures++;
+  provider.lastFailure = Date.now();
+  console.warn(`[AI LB] ${provider.name} failure count: ${provider.failures}`);
+}
+
+function recordSuccess(provider: ProviderConfig): void {
+  provider.failures = 0;
 }
 
 function extractTokens(usage: { total_tokens?: number; totalTokens?: number } | null | undefined): number {
@@ -65,7 +73,7 @@ function extractTokens(usage: { total_tokens?: number; totalTokens?: number } | 
   return (usage as { totalTokens?: number }).totalTokens || 0;
 }
 
-async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMessageParam[], options: { temperature?: number; max_tokens?: number }) {
+async function callGemini(messages: OpenAI.Chat.ChatCompletionMessageParam[], options: { temperature?: number; max_tokens?: number }) {
   const contents = messages
     .filter(m => m.content && typeof m.content === 'string')
     .map(m => ({
@@ -82,7 +90,7 @@ async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMes
   };
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,14 +109,10 @@ async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMes
 
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const usage = data.usageMetadata || {};
-
-  recordTokens('gemini', extractTokens(usage as { totalTokens?: number }));
 
   return {
     choices: [{ message: { role: 'model', content: text } }],
-    usage: usage as { totalTokens?: number },
-    raw: data,
+    usage: data.usageMetadata || {},
   };
 }
 
@@ -124,96 +128,81 @@ export async function chatWithFallback(
   usage?: { totalTokens?: number };
   provider: 'groq' | 'deepseek' | 'mistral' | 'gemini';
 }> {
-  const { model = 'llama-3.1-8b-instant', temperature = 0.7, max_tokens = 4000 } = options;
+  const { temperature = 0.7, max_tokens = 4000 } = options;
+  const healthy = getHealthyProviders();
 
-  if (!isNearLimit('groq', max_tokens)) {
-    try {
-      const completion = await groq.chat.completions.create({
-        model,
-        messages,
-        temperature,
-        max_tokens,
-      });
-
-      recordTokens('groq', extractTokens(completion.usage as { totalTokens?: number }));
-
-      return {
-        choices: completion.choices,
-        usage: completion.usage as { totalTokens?: number },
-        provider: 'groq',
-      };
-    } catch (err: unknown) {
-      const error = err as { status?: number; isRateLimit?: boolean };
-      console.warn(`[AI] Groq error (${error.status}), trying Deepseek...`);
-      if (error.status !== 429 && error.status !== 401 && error.status !== 403 && error.status !== 402 && error.status !== undefined) {
-        throw err;
-      }
-    }
-  } else {
-    console.warn('[AI] Groq TPM near limit, trying Deepseek...');
+  if (healthy.length === 0) {
+    throw new Error('All AI providers are unavailable');
   }
 
-  if (!isNearLimit('deepseek', max_tokens)) {
+  const selected = selectWeightedRandom(healthy);
+
+  if (selected.name === 'gemini') {
     try {
-      const completion = await deepseek.chat.completions.create({
-        model: 'deepseek-chat',
-        messages,
-        temperature,
-        max_tokens,
-      });
-
-      recordTokens('deepseek', extractTokens(completion.usage as { totalTokens?: number }));
-
-      return {
-        choices: completion.choices,
-        usage: completion.usage as { totalTokens?: number },
-        provider: 'deepseek',
-      };
+      const result = await callGemini(messages, { temperature, max_tokens });
+      recordSuccess(selected);
+      return { ...result, provider: 'gemini' };
     } catch (err: unknown) {
-      const error = err as { status?: number; isRateLimit?: boolean };
-      console.warn(`[AI] Deepseek error (${error.status}), trying Mistral...`);
-      if (error.status !== 429 && error.status !== 401 && error.status !== 403 && error.status !== 402 && error.status !== undefined) {
-        throw err;
+      recordFailure(selected);
+      const healthy2 = getHealthyProviders();
+      if (healthy2.length > 0) {
+        const next = selectWeightedRandom(healthy2.filter(p => p.name !== 'gemini'));
+        if (next.client) {
+          try {
+            const completion = await next.client.chat.completions.create({
+              model: next.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+              messages,
+              temperature,
+              max_tokens,
+            });
+            recordSuccess(next);
+            return {
+              choices: completion.choices,
+              usage: completion.usage as { totalTokens?: number },
+              provider: next.name,
+            };
+          } catch {
+            recordFailure(next);
+          }
+        }
       }
+      throw err;
     }
-  } else {
-    console.warn('[AI] Deepseek TPM near limit, trying Mistral...');
   }
 
-  if (!isNearLimit('mistral', max_tokens)) {
-    try {
-      const completion = await mistral.chat.completions.create({
-        model: 'mistral-small-latest',
-        messages,
-        temperature,
-        max_tokens,
-      });
+  try {
+    const completion = await selected.client!.chat.completions.create({
+      model: selected.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+      messages,
+      temperature,
+      max_tokens,
+    });
 
-      recordTokens('mistral', extractTokens(completion.usage as { totalTokens?: number }));
-
-      return {
-        choices: completion.choices,
-        usage: completion.usage as { totalTokens?: number },
-        provider: 'mistral',
-      };
-    } catch (err: unknown) {
-      const error = err as { status?: number; isRateLimit?: boolean };
-      console.warn(`[AI] Mistral error (${error.status}), trying Gemini...`);
-      if (error.status !== 429 && error.status !== 401 && error.status !== 403 && error.status !== 402 && error.status !== undefined) {
-        throw err;
-      }
-    }
-  } else {
-    console.warn('[AI] Mistral TPM near limit, trying Gemini...');
+    recordSuccess(selected);
+    return {
+      choices: completion.choices,
+      usage: completion.usage as { totalTokens?: number },
+      provider: selected.name,
+    };
+  } catch (err: unknown) {
+    recordFailure(selected);
+    throw err;
   }
-
-  const result = await callGemini('gemini-2.5-flash', messages, { temperature, max_tokens });
-  return { ...result, provider: 'gemini' };
 }
 
 export function resetAI(): void {
-  tokenUsage['groq'] = { count: 0, windowStart: Date.now() };
-  tokenUsage['deepseek'] = { count: 0, windowStart: Date.now() };
-  tokenUsage['mistral'] = { count: 0, windowStart: Date.now() };
-  tokenUsage['gemini'] = { count: 0, windowStart: Date.now() };
+  for (const p of providers) {
+    p.failures = 0;
+  }
+}
+
+export function getProviderStatus(): Record<string, { healthy: boolean; failures: number }> {
+  const now = Date.now();
+  const status: Record<string, { healthy: boolean; failures: number }> = {};
+  for (const p of providers) {
+    const isHealthy = p.client || p.name === 'gemini';
+    const inCooldown = p.failures > 0 && now - p.lastFailure < PROVIDER_COOLDOWN_MS;
+    status[p.name] = { healthy: isHealthy && !inCooldown, failures: p.failures };
+  }
+  return status;
 }
