@@ -82,7 +82,8 @@ JSON only, no markdown.`;
         if (summary) break;
       } catch (err) {
         console.error(`[Summary] Attempt ${attempt + 1}:`, err);
-        if (err instanceof Error && !('status' in err)) {
+        const e = err as Error & { status?: number };
+        if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
           throw err;
         }
       }
