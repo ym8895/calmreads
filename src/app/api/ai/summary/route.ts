@@ -82,14 +82,22 @@ JSON only, no markdown.`;
         if (summary) break;
       } catch (err) {
         console.error(`[Summary] Attempt ${attempt + 1}:`, err);
+        if (err instanceof Error && !('status' in err)) {
+          throw err;
+        }
       }
     }
 
+    console.log(`[Summary] rawContent length: ${rawContent.length}, summary: ${!!summary}`);
     if (!summary && rawContent.length > 50) summary = buildFallback(title, author, rawContent);
     if (!summary) return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
 
     if (summary) {
-      await updateBookContent(useBookId, { summary: JSON.stringify(summary) });
+      try {
+        await updateBookContent(useBookId, { summary: JSON.stringify(summary) });
+      } catch (err) {
+        console.error('[Summary] Cache save failed:', err);
+      }
     }
 
     return NextResponse.json(summary);
