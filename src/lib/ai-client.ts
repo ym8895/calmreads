@@ -2,10 +2,16 @@ import OpenAI from 'openai';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 
 const groq = new OpenAI({
   apiKey: GROQ_API_KEY,
   baseURL: 'https://api.groq.com/openai/v1',
+});
+
+const deepseek = new OpenAI({
+  apiKey: DEEPSEEK_API_KEY,
+  baseURL: 'https://api.deepseek.com',
 });
 
 interface TokenUsage {
@@ -17,12 +23,13 @@ const TPM_WINDOW_MS = 60_000;
 
 const tokenUsage: Record<string, TokenUsage> = {};
 
-function getTPMLimit(provider: 'groq' | 'gemini'): number {
+function getTPMLimit(provider: 'groq' | 'deepseek' | 'gemini'): number {
   if (provider === 'groq') return 80_000;
+  if (provider === 'deepseek') return 200_000;
   return 1_000_000;
 }
 
-function isNearLimit(provider: 'groq' | 'gemini', tokens: number): boolean {
+function isNearLimit(provider: 'groq' | 'deepseek' | 'gemini', tokens: number): boolean {
   const limit = getTPMLimit(provider);
   const usage = tokenUsage[provider] || { count: 0, windowStart: Date.now() };
 
@@ -34,7 +41,7 @@ function isNearLimit(provider: 'groq' | 'gemini', tokens: number): boolean {
   return usage.count + tokens >= limit * 0.95;
 }
 
-function recordTokens(provider: 'groq' | 'gemini', tokens: number): void {
+function recordTokens(provider: 'groq' | 'deepseek' | 'gemini', tokens: number): void {
   const now = Date.now();
   const usage = tokenUsage[provider] || { count: 0, windowStart: now };
 
@@ -46,9 +53,9 @@ function recordTokens(provider: 'groq' | 'gemini', tokens: number): void {
   }
 }
 
-function extractGeminiTokens(usage: { totalTokens?: number; promptTokens?: number; completionTokens?: number } | null | undefined): number {
+function extractTokens(usage: { totalTokens?: number } | null | undefined): number {
   if (!usage) return 0;
-  return (usage as { totalTokens?: number }).totalTokens || 0;
+  return usage.totalTokens || 0;
 }
 
 async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMessageParam[], options: { temperature?: number; max_tokens?: number }) {
@@ -87,24 +94,22 @@ async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMes
 
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if (!text) {
-    const promptFeedback = data.candidates?.[0]?.promptFeedback;
-    if (promptFeedback?.blockReason) {
-      throw Object.assign(new Error(`Gemini blocked: ${promptFeedback.blockReason}`), {
-        status: 400,
-        isRateLimit: false,
-      });
-    }
-  }
   const usage = data.usageMetadata || {};
 
-  recordTokens('gemini', extractGeminiTokens(usage));
+  recordTokens('gemini', extractTokens(usage as { totalTokens?: number }));
 
   return {
     choices: [{ message: { role: 'model', content: text } }],
-    usage,
+    usage: usage as { totalTokens?: number },
     raw: data,
   };
+}
+
+function isRetryableError(err: { status?: number; isRateLimit?: boolean }, provider: string): boolean {
+  if (err.status === 429 || err.isRateLimit) return true;
+  if (err.status === 401 || err.status === 403) return true;
+  if (!err.status) return true;
+  return false;
 }
 
 export async function chatWithFallback(
@@ -117,24 +122,20 @@ export async function chatWithFallback(
 ): Promise<{
   choices: { message: { role: string; content: string | null } }[];
   usage?: { totalTokens?: number };
-  provider: 'groq' | 'gemini';
+  provider: 'groq' | 'deepseek' | 'gemini';
 }> {
   const { model = 'llama-3.1-8b-instant', temperature = 0.7, max_tokens = 4000 } = options;
-
-  const groqModel = model;
-  const geminiModel = 'gemini-2.5-flash';
 
   if (!isNearLimit('groq', max_tokens)) {
     try {
       const completion = await groq.chat.completions.create({
-        model: groqModel,
+        model,
         messages,
         temperature,
         max_tokens,
       });
 
-      const tokens = extractGeminiTokens(completion.usage as { totalTokens?: number });
-      recordTokens('groq', tokens);
+      recordTokens('groq', extractTokens(completion.usage as { totalTokens?: number }));
 
       return {
         choices: completion.choices,
@@ -143,21 +144,44 @@ export async function chatWithFallback(
       };
     } catch (err: unknown) {
       const error = err as { status?: number; isRateLimit?: boolean };
-      if (error.status === 429 || error.isRateLimit || error.status === 401) {
-        console.warn(`[AI] Groq error (${error.status}), falling back to Gemini...`);
-      } else {
-        throw err;
-      }
+      console.warn(`[AI] Groq error (${error.status}), trying Deepseek...`);
+      if (!isRetryableError(error, 'groq')) throw err;
     }
   } else {
-    console.warn('[AI] Groq TPM near limit, switching to Gemini...');
+    console.warn('[AI] Groq TPM near limit, trying Deepseek...');
   }
 
-  const result = await callGemini(geminiModel, messages, { temperature, max_tokens });
+  if (!isNearLimit('deepseek', max_tokens)) {
+    try {
+      const completion = await deepseek.chat.completions.create({
+        model: 'deepseek-chat',
+        messages,
+        temperature,
+        max_tokens,
+      });
+
+      recordTokens('deepseek', extractTokens(completion.usage as { totalTokens?: number }));
+
+      return {
+        choices: completion.choices,
+        usage: completion.usage as { totalTokens?: number },
+        provider: 'deepseek',
+      };
+    } catch (err: unknown) {
+      const error = err as { status?: number; isRateLimit?: boolean };
+      console.warn(`[AI] Deepseek error (${error.status}), trying Gemini...`);
+      if (!isRetryableError(error, 'deepseek')) throw err;
+    }
+  } else {
+    console.warn('[AI] Deepseek TPM near limit, trying Gemini...');
+  }
+
+  const result = await callGemini('gemini-2.5-flash', messages, { temperature, max_tokens });
   return { ...result, provider: 'gemini' };
 }
 
 export function resetAI(): void {
   tokenUsage['groq'] = { count: 0, windowStart: Date.now() };
+  tokenUsage['deepseek'] = { count: 0, windowStart: Date.now() };
   tokenUsage['gemini'] = { count: 0, windowStart: Date.now() };
 }
