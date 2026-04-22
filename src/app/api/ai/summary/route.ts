@@ -79,7 +79,7 @@ JSON only, no markdown.`;
             { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
             { role: 'user', content: prompt },
           ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 1900 }
+          { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000 }
         );
         rawContent = completion.choices[0]?.message?.content || '';
         provider = completion.provider;

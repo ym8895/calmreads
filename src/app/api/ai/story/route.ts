@@ -82,7 +82,7 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
             { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
             { role: 'user', content: prompt },
           ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 2000 }
+          { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 4000 }
         );
         rawContent = completion.choices[0]?.message?.content || '';
         story = tryParseJSON(rawContent);

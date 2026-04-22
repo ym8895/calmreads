@@ -75,7 +75,7 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
             { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
             { role: 'user', content: prompt },
           ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 2000 }
+          { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 4000 }
         );
         rawContent = completion.choices[0]?.message?.content || '';
         slides = tryParseSlides(rawContent);
