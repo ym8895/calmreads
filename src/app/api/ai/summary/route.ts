@@ -47,7 +47,12 @@ export async function POST(request: NextRequest) {
     if (!title || !author) return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
 
     const useBookId = bookId || `${title}-${author}`.toLowerCase().replace(/\s+/g, '-');
-    const cached = await getBookContent(useBookId);
+    let cached = null;
+    try {
+      cached = await getBookContent(useBookId);
+    } catch (err) {
+      console.error('[Summary] Cache read failed:', err);
+    }
     if (cached?.summary) {
       const parsed = tryParseJSON(cached.summary);
       if (parsed) return NextResponse.json(parsed);
