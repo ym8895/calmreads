@@ -63,7 +63,7 @@ async function callGemini(model: string, messages: OpenAI.Chat.ChatCompletionMes
     contents,
     generationConfig: {
       temperature: options.temperature ?? 0.7,
-      maxOutputTokens: options.max_tokens ?? 2048,
+      maxOutputTokens: options.max_tokens ?? 8192,
     },
   };
 
@@ -110,7 +110,7 @@ export async function chatWithFallback(
   usage?: { totalTokens?: number };
   provider: 'groq' | 'gemini';
 }> {
-  const { model = 'llama-3.1-8b-instant', temperature = 0.7, max_tokens = 2000 } = options;
+  const { model = 'llama-3.1-8b-instant', temperature = 0.7, max_tokens = 4000 } = options;
 
   const groqModel = model;
   const geminiModel = 'gemini-2.5-flash';
