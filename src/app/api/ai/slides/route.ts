@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Slide } from '@/lib/types';
-import { chatWithFallback } from '@/lib/ai-client';
+import { chatWithFallback, setUsageLogger } from '@/lib/ai-client';
+import { getUsageLogger } from '@/lib/usage-logger';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
+
+setUsageLogger(getUsageLogger());
 
 function tryParseSlides(content: string): Slide[] | null {
   let cleaned = content.trim();
@@ -75,7 +78,7 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
             { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
             { role: 'user', content: prompt },
           ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 4000 }
+          { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 4000, endpoint: 'slides' }
         );
         rawContent = completion.choices[0]?.message?.content || '';
         slides = tryParseSlides(rawContent);

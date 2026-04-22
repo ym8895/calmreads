@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
 import { chatWithFallback } from '@/lib/ai-client';
+import { setUsageLogger } from '@/lib/ai-client';
+import { getUsageLogger } from '@/lib/usage-logger';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
+
+setUsageLogger(getUsageLogger());
 
 function tryParseJSON(content: string): AISummary | null {
   let cleaned = content.trim();
@@ -78,7 +82,7 @@ JSON only, no markdown.`;
             { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
             { role: 'user', content: prompt },
           ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000 }
+          { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000, endpoint: 'summary' }
         );
         rawContent = completion.choices[0]?.message?.content || '';
         summary = tryParseJSON(rawContent);

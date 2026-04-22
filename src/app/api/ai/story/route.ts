@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AIStory } from '@/lib/types';
-import { chatWithFallback } from '@/lib/ai-client';
+import { chatWithFallback, setUsageLogger } from '@/lib/ai-client';
+import { getUsageLogger } from '@/lib/usage-logger';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
+
+setUsageLogger(getUsageLogger());
 
 function tryParseJSON(content: string): AIStory | null {
   let cleaned = content.trim();
@@ -82,7 +85,7 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
             { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
             { role: 'user', content: prompt },
           ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 4000 }
+          { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 4000, endpoint: 'story' }
         );
         rawContent = completion.choices[0]?.message?.content || '';
         story = tryParseJSON(rawContent);

@@ -37,6 +37,12 @@ const providers: ProviderConfig[] = [
   { name: 'gemini', client: null, weight: 1, failures: 0, lastFailure: 0 },
 ];
 
+let usageLogger: ((data: { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; endpoint: string; responseTimeMs: number; status: string }) => void) | null = null;
+
+export function setUsageLogger(logger: typeof usageLogger): void {
+  usageLogger = logger;
+}
+
 function getHealthyProviders(): ProviderConfig[] {
   const now = Date.now();
   return providers.filter(p => {
@@ -68,12 +74,22 @@ function recordSuccess(provider: ProviderConfig): void {
   provider.failures = 0;
 }
 
+function logUsage(data: { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; endpoint: string; responseTimeMs: number; status: string }): void {
+  if (usageLogger) {
+    try {
+      usageLogger(data);
+    } catch (err) {
+      console.error('[AI LB] Usage logging failed:', err);
+    }
+  }
+}
+
 function extractTokens(usage: { total_tokens?: number; totalTokens?: number } | null | undefined): number {
   if (!usage) return 0;
   return (usage as { totalTokens?: number }).totalTokens || 0;
 }
 
-async function callGemini(messages: OpenAI.Chat.ChatCompletionMessageParam[], options: { temperature?: number; max_tokens?: number }) {
+async function callGemini(messages: OpenAI.Chat.ChatCompletionMessageParam[], options: { temperature?: number; max_tokens?: number }, startTime: number) {
   const contents = messages
     .filter(m => m.content && typeof m.content === 'string')
     .map(m => ({
@@ -109,10 +125,23 @@ async function callGemini(messages: OpenAI.Chat.ChatCompletionMessageParam[], op
 
   const data = await res.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const usage = data.usageMetadata || {};
+  const responseTime = Date.now() - startTime;
+
+  logUsage({
+    provider: 'gemini',
+    model: 'gemini-2.5-flash',
+    promptTokens: (usage as { promptTokenCount?: number }).promptTokenCount || 0,
+    completionTokens: (usage as { candidatesTokenCount?: number }).candidatesTokenCount || 0,
+    totalTokens: (usage as { totalTokenCount?: number }).totalTokenCount || 0,
+    endpoint: 'gemini',
+    responseTimeMs: responseTime,
+    status: 'success',
+  });
 
   return {
     choices: [{ message: { role: 'model', content: text } }],
-    usage: data.usageMetadata || {},
+    usage,
   };
 }
 
@@ -122,16 +151,28 @@ export async function chatWithFallback(
     model?: string;
     temperature?: number;
     max_tokens?: number;
+    endpoint?: string;
   } = {}
 ): Promise<{
   choices: { message: { role: string; content: string | null } }[];
   usage?: { totalTokens?: number };
   provider: 'groq' | 'deepseek' | 'mistral' | 'gemini';
 }> {
-  const { temperature = 0.7, max_tokens = 4000 } = options;
+  const { temperature = 0.7, max_tokens = 4000, endpoint = 'unknown' } = options;
+  const startTime = Date.now();
   const healthy = getHealthyProviders();
 
   if (healthy.length === 0) {
+    logUsage({
+      provider: 'none',
+      model: 'none',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      endpoint,
+      responseTimeMs: Date.now() - startTime,
+      status: 'all_providers_down',
+    });
     throw new Error('All AI providers are unavailable');
   }
 
@@ -139,11 +180,21 @@ export async function chatWithFallback(
 
   if (selected.name === 'gemini') {
     try {
-      const result = await callGemini(messages, { temperature, max_tokens });
+      const result = await callGemini(messages, { temperature, max_tokens }, startTime);
       recordSuccess(selected);
       return { ...result, provider: 'gemini' };
     } catch (err: unknown) {
       recordFailure(selected);
+      logUsage({
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        endpoint,
+        responseTimeMs: Date.now() - startTime,
+        status: 'error',
+      });
       const healthy2 = getHealthyProviders();
       if (healthy2.length > 0) {
         const next = selectWeightedRandom(healthy2.filter(p => p.name !== 'gemini'));
@@ -156,6 +207,17 @@ export async function chatWithFallback(
               max_tokens,
             });
             recordSuccess(next);
+            const responseTime = Date.now() - startTime;
+            logUsage({
+              provider: next.name,
+              model: next.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+              promptTokens: extractTokens(completion.usage as { totalTokens?: number }) - (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
+              completionTokens: (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
+              totalTokens: extractTokens(completion.usage as { totalTokens?: number }),
+              endpoint,
+              responseTimeMs: responseTime,
+              status: 'success',
+            });
             return {
               choices: completion.choices,
               usage: completion.usage as { totalTokens?: number },
@@ -179,6 +241,17 @@ export async function chatWithFallback(
     });
 
     recordSuccess(selected);
+    const responseTime = Date.now() - startTime;
+    logUsage({
+      provider: selected.name,
+      model: selected.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+      promptTokens: extractTokens(completion.usage as { totalTokens?: number }) - (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
+      completionTokens: (completion.usage as { completion_tokens?: number }).completion_tokens || 0,
+      totalTokens: extractTokens(completion.usage as { totalTokens?: number }),
+      endpoint,
+      responseTimeMs: responseTime,
+      status: 'success',
+    });
     return {
       choices: completion.choices,
       usage: completion.usage as { totalTokens?: number },
@@ -186,6 +259,16 @@ export async function chatWithFallback(
     };
   } catch (err: unknown) {
     recordFailure(selected);
+    logUsage({
+      provider: selected.name,
+      model: selected.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      endpoint,
+      responseTimeMs: Date.now() - startTime,
+      status: 'error',
+    });
     throw err;
   }
 }
