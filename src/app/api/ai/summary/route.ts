@@ -70,7 +70,6 @@ JSON only, no markdown.`;
 
     let summary: AISummary | null = null;
     let rawContent = '';
-    let provider = 'groq';
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -82,10 +81,9 @@ JSON only, no markdown.`;
           { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000 }
         );
         rawContent = completion.choices[0]?.message?.content || '';
-        provider = completion.provider;
         summary = tryParseJSON(rawContent);
         if (summary) break;
-} catch (err) {
+      } catch (err) {
         console.error(`[Summary] Attempt ${attempt + 1}:`, err);
         const e = err as Error & { status?: number };
         if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
@@ -94,19 +92,6 @@ JSON only, no markdown.`;
       }
     }
 
-    if (!summary && rawContent.length > 50) summary = buildFallback(title, author, rawContent);
-    if (!summary) return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
-  } catch (error) {
-    console.error('[Summary API] Fatal:', error);
-    const e = error as Error & { status?: number };
-    if (e.status) return NextResponse.json({ error: e.message }, { status: e.status > 499 ? 502 : e.status });
-    return NextResponse.json({ error: 'Failed to generate summary. Please try again later.' }, { status: 500 });
-  }
-}
-      }
-    }
-
-    console.log(`[Summary] rawContent length: ${rawContent.length}, summary: ${!!summary}`);
     if (!summary && rawContent.length > 50) summary = buildFallback(title, author, rawContent);
     if (!summary) return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
 
@@ -121,6 +106,8 @@ JSON only, no markdown.`;
     return NextResponse.json(summary);
   } catch (error) {
     console.error('[Summary API] Fatal:', error);
+    const e = error as Error & { status?: number };
+    if (e.status) return NextResponse.json({ error: e.message }, { status: e.status > 499 ? 502 : e.status });
     return NextResponse.json({ error: 'Failed to generate summary. Please try again later.' }, { status: 500 });
   }
 }
