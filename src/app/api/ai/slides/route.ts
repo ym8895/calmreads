@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Slide } from '@/lib/types';
-import { getAI } from '@/lib/ai-client';
+import { chatWithFallback } from '@/lib/ai-client';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
 function tryParseSlides(content: string): Slide[] | null {
@@ -60,9 +60,7 @@ export async function POST(request: NextRequest) {
       }
 }
     
-    const zai = await getAI();
-    
-    const prompt = `Create 8 slides for "${bookTitle}" by ${bookAuthor}.
+const prompt = `Create 8 slides for "${bookTitle}" by ${bookAuthor}.
 Use ideas: ${summary.coreIdeas.join(', ')}
 Each slide: title + 5 meaningful points (15-20 words).
 Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","point5"]},...]`;
@@ -72,15 +70,13 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await zai.chat.completions.create({
-          model: 'llama-3.1-8b-instant',
-          messages: [
+        const completion = await chatWithFallback(
+          [
             { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.4,
-          max_tokens: 2000,
-        });
+          { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 2000 }
+        );
         rawContent = completion.choices[0]?.message?.content || '';
         slides = tryParseSlides(rawContent);
         if (slides) break;

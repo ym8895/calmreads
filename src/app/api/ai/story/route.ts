@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AIStory } from '@/lib/types';
-import { getAI } from '@/lib/ai-client';
+import { chatWithFallback } from '@/lib/ai-client';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
 function tryParseJSON(content: string): AIStory | null {
@@ -64,7 +64,6 @@ export async function POST(request: NextRequest) {
     }
 
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}` : '';
-    const zai = await getAI();
 
     const prompt = `Write a story about "${title}" by ${author}. 
 Description: ${description || 'N/A'}
@@ -78,15 +77,13 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await zai.chat.completions.create({
-          model: 'llama-3.1-8b-instant',
-          messages: [
+        const completion = await chatWithFallback(
+          [
             { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.7,
-          max_tokens: 2000,
-        });
+          { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 2000 }
+        );
         rawContent = completion.choices[0]?.message?.content || '';
         story = tryParseJSON(rawContent);
         if (story) break;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
-import { getAI } from '@/lib/ai-client';
+import { chatWithFallback } from '@/lib/ai-client';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
 function tryParseJSON(content: string): AISummary | null {
@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
     }
 
     const genreHint = categories?.length ? `\nGenres: ${categories.join(', ')}.` : '';
-    const zai = await getAI();
 
     const prompt = `Write a detailed summary for "${title}" by ${author}.
 Description: ${description || 'No description'}${genreHint}
@@ -66,19 +65,19 @@ JSON only, no markdown.`;
 
     let summary: AISummary | null = null;
     let rawContent = '';
+    let provider = 'groq';
 
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const completion = await zai.chat.completions.create({
-          model: 'llama-3.1-8b-instant',
-          messages: [
+        const completion = await chatWithFallback(
+          [
             { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.5,
-          max_tokens: 1900,
-        });
+          { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 1900 }
+        );
         rawContent = completion.choices[0]?.message?.content || '';
+        provider = completion.provider;
         summary = tryParseJSON(rawContent);
         if (summary) break;
       } catch (err) {
