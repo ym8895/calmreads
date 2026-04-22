@@ -85,12 +85,24 @@ JSON only, no markdown.`;
         provider = completion.provider;
         summary = tryParseJSON(rawContent);
         if (summary) break;
-      } catch (err) {
+} catch (err) {
         console.error(`[Summary] Attempt ${attempt + 1}:`, err);
         const e = err as Error & { status?: number };
         if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
-          throw err;
+          return NextResponse.json({ error: `AI error: ${e.message}` }, { status: 502 });
         }
+      }
+    }
+
+    if (!summary && rawContent.length > 50) summary = buildFallback(title, author, rawContent);
+    if (!summary) return NextResponse.json({ error: 'Failed to generate summary. Please try again.' }, { status: 500 });
+  } catch (error) {
+    console.error('[Summary API] Fatal:', error);
+    const e = error as Error & { status?: number };
+    if (e.status) return NextResponse.json({ error: e.message }, { status: e.status > 499 ? 502 : e.status });
+    return NextResponse.json({ error: 'Failed to generate summary. Please try again later.' }, { status: 500 });
+  }
+}
       }
     }
 
