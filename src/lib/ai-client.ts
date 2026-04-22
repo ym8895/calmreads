@@ -1,5 +1,3 @@
-'use client';
-
 import OpenAI from 'openai';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
