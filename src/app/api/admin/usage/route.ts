@@ -3,13 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
+  const password = searchParams.get('password');
   const hours = parseInt(searchParams.get('hours') || '24');
   const provider = searchParams.get('provider');
+
+  if (ADMIN_PASSWORD && password !== ADMIN_PASSWORD) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   let query = supabase
     .from('api_usage')
@@ -40,13 +46,6 @@ export async function GET(request: NextRequest) {
     else acc[r.provider].failed++;
     return acc;
   }, {} as Record<string, { requests: number; tokens: number; success: number; failed: number }>);
-
-  const byHour = data?.reduce((acc, r) => {
-    const hour = new Date(r.created_at).getHours();
-    if (!acc[hour]) acc[hour] = 0;
-    acc[hour]++;
-    return acc;
-  }, {} as Record<number, number>);
 
   return NextResponse.json({
     summary: {

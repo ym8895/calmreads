@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface UsageSummary {
   totalRequests: number;
@@ -48,18 +50,77 @@ const PROVIDER_NAMES: Record<string, string> = {
   gemini: 'Gemini',
 };
 
+function LoginScreen({ onLogin }: { onLogin: () => void }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/admin/usage?password=' + encodeURIComponent(password));
+    if (res.ok) {
+      localStorage.setItem('admin_token', password);
+      onLogin();
+    } else {
+      setError(true);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Admin Dashboard</CardTitle>
+          <CardDescription>Enter password to access</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {error && (
+              <p className="text-sm text-destructive">Invalid password</p>
+            )}
+            <Button type="submit" className="w-full">
+              Access Dashboard
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [hours, setHours] = useState(24);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const fetchUsage = useCallback(async () => {
+    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/usage?hours=${hours}`);
-      if (!res.ok) throw new Error('Failed to fetch');
+      const token = localStorage.getItem('admin_token') || '';
+      const res = await fetch(`/api/admin/usage?hours=${hours}&password=${encodeURIComponent(token)}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem('admin_token');
+          setIsAuthenticated(false);
+        }
+        throw new Error('Failed to fetch');
+      }
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -67,13 +128,19 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [hours]);
+  }, [hours, isAuthenticated]);
 
   useEffect(() => {
-    fetchUsage();
-    const interval = setInterval(fetchUsage, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUsage]);
+    if (isAuthenticated) {
+      fetchUsage();
+      const interval = setInterval(fetchUsage, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchUsage, isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   const formatNumber = (n: number) => n.toLocaleString();
   const formatDate = (d: string) => new Date(d).toLocaleString();
@@ -88,6 +155,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">API Usage Dashboard</h1>
           <div className="flex gap-2">
+            <span className="text-sm text-muted-foreground py-1">Token:</span>
             {[1, 6, 24, 168].map((h) => (
               <button
                 key={h}
@@ -106,6 +174,15 @@ export default function AdminDashboard() {
               className="px-3 py-1 rounded-md text-sm bg-muted hover:bg-muted/80"
             >
               Refresh
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('admin_token');
+                setIsAuthenticated(false);
+              }}
+              className="px-3 py-1 rounded-md text-sm bg-destructive/10 text-destructive hover:bg-destructive/20"
+            >
+              Logout
             </button>
           </div>
         </div>
