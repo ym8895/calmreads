@@ -251,6 +251,15 @@ export function DiscoverView() {
         </motion.div>
       )}
 
+      {/* Books Grid - Show when Recommended tab has books */}
+      {!isLoading && activeTab === 'recommended' && filteredBooks.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+          {filteredBooks.map((book, index) => (
+            <BookCard key={book.id} book={book} index={index} compact />
+          ))}
+        </div>
+      )}
+
       {/* Recently Viewed Tab */}
       {!isLoading && activeTab === 'recent' && recentBooks.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
