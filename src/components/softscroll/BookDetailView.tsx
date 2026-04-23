@@ -110,14 +110,25 @@ export function BookDetailView() {
         try {
           const storyData = await fetchAIStory(currentBook);
           setLocalStory(storyData);
+          
+          // Generate audio from the newly created storyData
+          const storyText = storyData.introduction + '\n\n' + 
+            (storyData.chapters || []).map((ch: any) => ch.content).join('\n\n');
+          const audioData = await fetchAIAudio({ fullText: storyText } as AISummary);
+          if (audioData.useBrowserTts) {
+            setAudioUrl('story_' + (audioData.text || ''));
+          } else {
+            setAudioUrl(audioData.audioUrl || '');
+          }
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
+        } finally {
           setIsGenerating(false);
-          return;
         }
+        return;
       }
       
-      // Then generate audio from story
+      // Story exists, generate audio only
       setIsGenerating(true);
       try {
         const storyText = localStory.introduction + '\n\n' + 
