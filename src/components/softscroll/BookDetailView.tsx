@@ -109,8 +109,9 @@ export function BookDetailView() {
         }
       }
     } else {
-      // Quick Summary mode
-      if (!summary || audioUrl) return;
+      // Quick Summary mode - needs summary to exist
+      if (!summary) return;
+      if (audioUrl) return; // Already generated
       setIsGenerating(true);
       setError(null);
       try {
@@ -146,9 +147,15 @@ export function BookDetailView() {
   useEffect(() => {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
-    else if (activeTab === 'audio' && summary) generateAudio();
+    else if (activeTab === 'audio') {
+      if (audioContentType === 'story' && !localStory) {
+        generateAudio(); // Will generate story first
+      } else if (audioContentType === 'summary' && summary && !audioUrl) {
+        generateAudio();
+      }
+    }
     else if (activeTab === 'story' && currentBook && !localStory) generateStory();
-  }, [activeTab, currentBook?.id, summary, slides]);
+  }, [activeTab, currentBook?.id, summary, slides, audioContentType, localStory, audioUrl]);
 
   useEffect(() => {
     if (activeTab === 'summary' && currentBook && !summary) {
