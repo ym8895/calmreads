@@ -155,17 +155,25 @@ export function BookDetailView() {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
     else if (activeTab === 'audio') {
-      // Auto-generate summary first if not exists, then audio
-      if (audioContentType === 'summary' && !summary) {
-        generateSummary();
-      } else if (audioContentType === 'summary' && summary && !audioUrl) {
-        generateAudio();
-      } else if (audioContentType === 'story' && !audioUrl) {
-        generateAudio();
+      // Quick Summary - generate summary first if needed
+      if (audioContentType === 'summary') {
+        if (!summary) {
+          generateSummary();
+        } else if (!audioUrl) {
+          generateAudio();
+        }
+      }
+      // Full Story - generate story first if needed, then audio
+      else if (audioContentType === 'story') {
+        if (!localStory) {
+          generateAudio();
+        } else if (!audioUrl) {
+          generateAudio();
+        }
       }
     }
     else if (activeTab === 'story' && currentBook && !localStory) generateStory();
-  }, [activeTab, currentBook?.id, summary, slides]);
+  }, [activeTab, currentBook?.id, summary, slides, localStory, audioUrl, audioContentType]);
 
   useEffect(() => {
     if (activeTab === 'summary' && currentBook && !summary) {
