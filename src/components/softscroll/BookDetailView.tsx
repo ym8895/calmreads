@@ -68,58 +68,65 @@ export function BookDetailView() {
   };
 
   const generateAudio = async () => {
-    if (audioContentType === 'story') {
-      // Generate story first if not exists, then audio
-      if (!localStory) {
+    // Quick Summary: Use existing summary or generate first
+    if (audioContentType === 'summary') {
+      if (!summary) {
+        // Generate summary first
         setIsGenerating(true);
         setError(null);
         try {
-          const storyData = await fetchAIStory(currentBook);
-          setLocalStory(storyData);
-          // After story, generate audio from story
-          const storyText = storyData.introduction + '\n\n' + 
-            (storyData.chapters || []).map((ch: any) => ch.content).join('\n\n');
-          const audioData = await fetchAIAudio({ fullText: storyText } as AISummary);
-          if (audioData.useBrowserTts) {
-            setAudioUrl(audioData.text || '');
-          } else {
-            setAudioUrl(audioData.audioUrl || '');
-          }
+          const summaryData = await fetchAISummary(currentBook);
+          setSummary(summaryData);
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
-        } finally {
+          setError(err instanceof Error ? err.message : 'Failed to generate summary. Please try again.');
           setIsGenerating(false);
-        }
-      } else if (audioUrl) {
-        // Regenerate from story if not current type
-        const storyText = localStory.introduction + '\n\n' + 
-          (localStory.chapters || []).map((ch: any) => ch.content).join('\n\n');
-        setIsGenerating(true);
-        try {
-          const audioData = await fetchAIAudio({ fullText: storyText } as AISummary);
-          if (audioData.useBrowserTts) {
-            setAudioUrl(audioData.text || '');
-          } else {
-            setAudioUrl(audioData.audioUrl || '');
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
-        } finally {
-          setIsGenerating(false);
+          return;
         }
       }
-    } else {
-      // Quick Summary mode - needs summary to exist
-      if (!summary) return;
-      if (audioUrl) return; // Already generated
+      // Then generate audio from summary
       setIsGenerating(true);
       setError(null);
       try {
         const data = await fetchAIAudio(summary);
         if (data.useBrowserTts) {
-          setAudioUrl(data.text || '');
+          setAudioUrl('summary_' + (data.text || ''));
         } else {
           setAudioUrl(data.audioUrl || '');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
+
+    // Full Story: Generate story first, then audio
+    if (audioContentType === 'story') {
+      if (!localStory) {
+        // Generate story first
+        setIsGenerating(true);
+        setError(null);
+        try {
+          const storyData = await fetchAIStory(currentBook);
+          setLocalStory(storyData);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
+          setIsGenerating(false);
+          return;
+        }
+      }
+      
+      // Then generate audio from story
+      setIsGenerating(true);
+      try {
+        const storyText = localStory.introduction + '\n\n' + 
+          (localStory.chapters || []).map((ch: any) => ch.content).join('\n\n');
+        const audioData = await fetchAIAudio({ fullText: storyText } as AISummary);
+        if (audioData.useBrowserTts) {
+          setAudioUrl('story_' + (audioData.text || ''));
+        } else {
+          setAudioUrl(audioData.audioUrl || '');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
@@ -148,14 +155,17 @@ export function BookDetailView() {
     if (activeTab === 'summary') generateSummary();
     else if (activeTab === 'slides' && summary) generateSlides();
     else if (activeTab === 'audio') {
-      if (audioContentType === 'story' && !localStory) {
-        generateAudio(); // Will generate story first
+      // Auto-generate summary first if not exists, then audio
+      if (audioContentType === 'summary' && !summary) {
+        generateSummary();
       } else if (audioContentType === 'summary' && summary && !audioUrl) {
+        generateAudio();
+      } else if (audioContentType === 'story' && !audioUrl) {
         generateAudio();
       }
     }
     else if (activeTab === 'story' && currentBook && !localStory) generateStory();
-  }, [activeTab, currentBook?.id, summary, slides, audioContentType, localStory, audioUrl]);
+  }, [activeTab, currentBook?.id, summary, slides]);
 
   useEffect(() => {
     if (activeTab === 'summary' && currentBook && !summary) {
