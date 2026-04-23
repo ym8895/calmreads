@@ -124,7 +124,6 @@ export function Header() {
                   className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
                 >
                   <Search className="h-4 w-4" />
-                  <span className="hidden sm:inline text-muted-foreground/60 text-[10px] bg-muted/50 px-1.5 py-0.5 rounded">⌘K</span>
                 </Button>
               </motion.div>
             )}
