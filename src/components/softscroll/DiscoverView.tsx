@@ -108,9 +108,7 @@ export function DiscoverView() {
               Discover
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base mt-1">
-              {filteredBooks.length > 0
-                ? `${filteredBooks.length} books available`
-                : 'Find your next favorite read'}
+              Find your next favorite read
             </p>
           </div>
           <div className="flex items-center gap-2">
