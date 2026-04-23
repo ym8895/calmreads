@@ -11,9 +11,9 @@ import { useState, useEffect } from 'react';
 import { categories } from '@/lib/categories';
 
 export function DiscoverView() {
-  const { recommendedBooks, setCurrentView, isLoading, selectedInterests, setRecommendedBooks, setIsLoading, searchQuery, setSearchQuery, recentBooks } = useSoftScrollStore();
+  const { recommendedBooks, setCurrentView, isLoading, selectedInterests, setRecommendedBooks, setIsLoading, searchQuery, setSearchQuery, recentBooks, discoverTab, setDiscoverTab } = useSoftScrollStore();
   const [sortBy, setSortBy] = useState<'default' | 'title' | 'year'>('default');
-  const [activeTab, setActiveTab] = useState<'recommended' | 'recent' | 'trending' | 'search'>('recommended');
+  const activeTab = discoverTab;
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -68,8 +68,12 @@ export function DiscoverView() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      setActiveTab('search');
+      setDiscoverTab('search');
     }
+  };
+
+  const handleTabChange = (tab: typeof discoverTab) => {
+    setDiscoverTab(tab);
   };
 
   // Filter and sort
@@ -148,7 +152,7 @@ export function DiscoverView() {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => handleTabChange(tab.id as any)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               activeTab === tab.id
                 ? 'bg-card text-foreground shadow-sm'

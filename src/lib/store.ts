@@ -18,6 +18,7 @@ interface SoftScrollState {
   searchQuery: string;
   recentSearches: string[];
   recentBooks: Book[];
+  discoverTab: 'recommended' | 'recent' | 'trending' | 'search';
   readerSettings: {
     fontSize: number;
     lineHeight: number;
@@ -36,6 +37,7 @@ interface SoftScrollState {
   setAudioUrl: (url: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   setSearchQuery: (query: string) => void;
+  setDiscoverTab: (tab: SoftScrollState['discoverTab']) => void;
   addRecentSearch: (query: string) => void;
   addRecentBook: (book: Book) => void;
   updateReaderSettings: (settings: Partial<SoftScrollState['readerSettings']>) => void;
@@ -55,8 +57,9 @@ export const useSoftScrollStore = create<SoftScrollState>()(
       isLoading: false,
       searchQuery: '',
       recentSearches: [],
-      recentBooks: [],
-      readerSettings: {
+recentBooks: [],
+  discoverTab: 'recommended',
+  readerSettings: {
         fontSize: 18,
         lineHeight: 1.8,
         darkMode: false,
@@ -83,6 +86,7 @@ export const useSoftScrollStore = create<SoftScrollState>()(
       setAudioUrl: (url) => set({ audioUrl: url }),
       setIsLoading: (loading) => set({ isLoading: loading }),
       setSearchQuery: (query) => set({ searchQuery: query }),
+      setDiscoverTab: (tab) => set({ discoverTab: tab }),
       addRecentSearch: (query) =>
         set((state) => ({
           recentSearches: [query, ...state.recentSearches.filter((q) => q !== query)].slice(0, 10),
