@@ -251,86 +251,6 @@ export function DiscoverView() {
         </motion.div>
       )}
 
-      {/* Empty Recent */}
-      {!isLoading && activeTab === 'recent' && recentBooks.length === 0 && (
-        <div className="text-center py-16">
-          <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No recently viewed</h3>
-          <p className="text-muted-foreground text-sm">Books you view will appear here</p>
-        </div>
-      )}
-
-      {/* Empty Trending */}
-      {!isLoading && activeTab === 'trending' && trendingBooks.length === 0 && (
-        <div className="text-center py-16">
-          <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No trending yet</h3>
-          <p className="text-muted-foreground text-sm">Check back soon as more people discover books</p>
-        </div>
-      )}
-
-      {/* Empty Search */}
-      {!isLoading && activeTab === 'search' && !searchQuery && (
-        <div className="text-center py-16">
-          <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">Search for books</h3>
-          <p className="text-muted-foreground text-sm">Try searching by title, author, or category</p>
-        </div>
-      )}
-
-      {/* No search results */}
-      {!isLoading && recommendedBooks.length > 0 && filteredBooks.length === 0 && (
-        <div className="text-center py-16">
-          <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No matches</h3>
-          <p className="text-muted-foreground text-sm">Try a different search term</p>
-        </div>
-      )}
-
-      {/* Books Grid */}
-      {!isLoading && filteredBooks.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-          {filteredBooks.map((book, index) => (
-            <BookCard key={book.id} book={book} index={index} compact />
-          ))}
-        </div>
-      )}
-
-      {/* Trending Tab */}
-      {(activeTab === 'trending') && (
-        isLoadingTrending ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-card border border-border/50 rounded-2xl p-4">
-                <Skeleton className="w-20 sm:w-24 h-28 sm:h-36 rounded-xl" />
-              </div>
-            ))}
-          </div>
-        ) : trendingBooks.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-[#8FB9A8]" />
-              <span className="text-sm text-muted-foreground">Most viewed in last 24 hours</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-              {trendingBooks.map((book, index) => (
-                <BookCard key={book.id} book={book} index={index} compact />
-              ))}
-            </div>
-          </motion.div>
-        ) : (
-          <div className="text-center py-16">
-            <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground/80 mb-2">No trending yet</h3>
-            <p className="text-muted-foreground text-sm">Check back soon as more people discover books</p>
-          </div>
-        )
-      )}
-
       {/* Recently Viewed Tab */}
       {!isLoading && activeTab === 'recent' && recentBooks.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
@@ -340,21 +260,12 @@ export function DiscoverView() {
         </div>
       )}
 
-      {/* Recent Empty State */}
+      {/* Recent Empty State only */}
       {!isLoading && activeTab === 'recent' && recentBooks.length === 0 && (
         <div className="text-center py-16">
           <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground/80 mb-2">No recently viewed</h3>
           <p className="text-muted-foreground text-sm">Books you view will appear here</p>
-        </div>
-      )}
-
-      {/* Search Results Empty */}
-      {!isLoading && activeTab === 'search' && !searchQuery && (
-        <div className="text-center py-16">
-          <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground/80 mb-2">Search for books</h3>
-          <p className="text-muted-foreground text-sm">Try searching by title, author, or category</p>
         </div>
       )}
     </div>
