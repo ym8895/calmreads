@@ -198,7 +198,7 @@ export function BookDetailView() {
     { id: 'summary', label: 'Summary', icon: <FileText className="w-4 h-4" /> },
     { id: 'slides', label: 'Slides', icon: <LayoutGrid className="w-4 h-4" /> },
     { id: 'audio', label: 'Audio', icon: <Headphones className="w-4 h-4" /> },
-    { id: 'story', label: 'Story (15 min)', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'story', label: 'Story', icon: <BookOpen className="w-4 h-4" /> },
   ];
 
   return (
