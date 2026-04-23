@@ -118,3 +118,106 @@ export async function updateBookContent(
 
 export { CONTENT_VERSION };
 export { getFromSupabase, saveToSupabase };
+
+// Book Views for Trending
+export async function trackBookView(bookId: string, bookTitle: string): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('book_views')
+      .insert({ book_id: bookId, book_title: bookTitle });
+    return !error;
+  } catch { return false; }
+}
+
+export async function getTrendingBooks(hours = 24, limit = 10): Promise<{ book_id: string; book_title: string; views: number }[]> {
+  if (!supabase) return [];
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .rpc('get_trending_books', { 
+        hours_param: hours, 
+        limit_param: limit,
+        since_param: since 
+      });
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      book_id: d.book_id,
+      book_title: d.book_title,
+      views: d.views
+    }));
+  } catch { return []; }
+}
+
+export async function getTrendingBooksSimple(hours = 24, limit = 10): Promise<{ book_id: string; book_title: string; views: number }[]> {
+  if (!supabase) return [];
+  try {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('book_views')
+      .select('book_id, book_title')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false });
+    if (error || !data) return [];
+    
+    const viewsMap = new Map<string, { book_id: string; book_title: string; views: number }>();
+    data.forEach((row: any) => {
+      const existing = viewsMap.get(row.book_id);
+      if (existing) {
+        existing.views++;
+      } else {
+        viewsMap.set(row.book_id, { book_id: row.book_id, book_title: row.book_title, views: 1 });
+      }
+    });
+    
+    return Array.from(viewsMap.values())
+      .sort((a, b) => b.views - a.views)
+      .slice(0, limit);
+  } catch { return []; }
+}
+
+// Feedback
+export async function submitFeedbackToSupabase(message: string, category = 'general'): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('feedback')
+      .insert({ message, category });
+    return !error;
+  } catch { return false; }
+}
+
+export async function getFeedbackFromSupabase(unreadOnly = false): Promise<{ feedback: { id: string; message: string; category: string; created_at: string; is_read: boolean }[]; unreadCount: number }> {
+  if (!supabase) return { feedback: [], unreadCount: 0 };
+  try {
+    let query = supabase
+      .from('feedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    const { data, error } = await query;
+    if (error || !data) return { feedback: [], unreadCount: 0 };
+    
+    const feedback = data.map(f => ({
+      id: f.id,
+      message: f.message,
+      category: f.category,
+      created_at: f.created_at,
+      is_read: f.is_read
+    }));
+    const unreadCount = feedback.filter(f => !f.is_read).length;
+    return { feedback, unreadCount };
+  } catch { return { feedback: [], unreadCount: 0 }; }
+}
+
+export async function markFeedbackRead(id: string, isRead = true): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase
+      .from('feedback')
+      .update({ is_read: isRead })
+      .eq('id', id);
+    return !error;
+  } catch { return false; }
+}

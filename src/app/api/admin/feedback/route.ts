@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { submitFeedbackToSupabase, getFeedbackFromSupabase, markFeedbackRead } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,14 +9,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message too short' }, { status: 400 });
     }
 
-    const feedback = await prisma.feedback.create({
-      data: {
-        message: message.trim(),
-        category: category || 'general',
-      },
-    });
+    const success = await submitFeedbackToSupabase(message.trim(), category || 'general');
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to submit feedback' }, { status: 500 });
+    }
 
-    return NextResponse.json({ success: true, id: feedback.id });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to submit feedback:', error);
     return NextResponse.json({ error: 'Failed to submit feedback' }, { status: 500 });
@@ -30,17 +26,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get('unread') === 'true';
 
-    const feedback = await prisma.feedback.findMany({
-      where: unreadOnly ? { isRead: false } : undefined,
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    const result = await getFeedbackFromSupabase(unreadOnly);
 
-    const unreadCount = await prisma.feedback.count({
-      where: { isRead: false },
-    });
-
-    return NextResponse.json({ feedback, unreadCount });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Failed to get feedback:', error);
     return NextResponse.json({ error: 'Failed to get feedback' }, { status: 500 });
@@ -55,10 +43,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 });
     }
 
-    await prisma.feedback.update({
-      where: { id },
-      data: { isRead },
-    });
+    const success = await markFeedbackRead(id, isRead);
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to update' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
