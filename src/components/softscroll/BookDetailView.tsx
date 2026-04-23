@@ -18,7 +18,7 @@ import { SlideCarousel } from './SlideCarousel';
 type AITab = 'summary' | 'story' | 'audio' | 'slides';
 
 export function BookDetailView() {
-  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl } = useSoftScrollStore();
+  const { currentBook, savedBooks, toggleSaveBook, summary, setSummary, slides, setSlides, setCurrentView, audioUrl, setAudioUrl, addRecentBook } = useSoftScrollStore();
   const [activeTab, setActiveTab] = useState<AITab>('summary');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);

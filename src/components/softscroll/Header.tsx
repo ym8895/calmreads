@@ -1,12 +1,46 @@
 'use client';
 
-import { BookOpen, Moon, Sun, ArrowLeft, Bookmark } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BookOpen, Moon, Sun, ArrowLeft, Bookmark, Search, X } from 'lucide-react';
 import { useSoftScrollStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
-  const { currentView, setCurrentView, savedBooks } = useSoftScrollStore();
+  const { currentView, setCurrentView, savedBooks, searchQuery, setSearchQuery, addRecentSearch } = useSoftScrollStore();
+  const [showSearch, setShowSearch] = useState(false);
+  const [localSearch, setLocalSearch] = useState('');
+
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (localSearch.trim()) {
+      setSearchQuery(localSearch.trim());
+      addRecentSearch(localSearch.trim());
+      setShowSearch(false);
+      if (currentView !== 'discover') {
+        setCurrentView('discover');
+      }
+    }
+  }, [localSearch, setSearchQuery, addRecentSearch, setCurrentView, currentView]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      setShowSearch(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
+    if (!showSearch) {
+      setLocalSearch(searchQuery);
+    }
+  };
 
   return (
     <motion.header
@@ -47,8 +81,55 @@ export function Header() {
           </div>
         </div>
 
-        {/* Right: Saved count */}
+        {/* Right: Search & Saved */}
         <div className="flex items-center gap-2">
+          <AnimatePresence mode="wait">
+            {showSearch ? (
+              <motion.form
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={handleSearch}
+                className="flex items-center"
+              >
+                <input
+                  type="text"
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  placeholder="Search books..."
+                  autoFocus
+                  className="w-32 sm:w-48 px-3 py-1.5 text-sm rounded-xl bg-muted/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSearch}
+                  className="rounded-xl ml-1"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </motion.form>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSearch}
+                  className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
+                >
+                  <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline text-muted-foreground/60 text-[10px] bg-muted/50 px-1.5 py-0.5 rounded">⌘K</span>
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <Button
             variant="ghost"
             size="sm"

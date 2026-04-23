@@ -13,11 +13,12 @@ interface BookCardProps {
 }
 
 export function BookCard({ book, index, compact = false }: BookCardProps) {
-  const { setCurrentBook, setCurrentView, savedBooks, toggleSaveBook } = useSoftScrollStore();
+  const { setCurrentBook, setCurrentView, savedBooks, toggleSaveBook, addRecentBook } = useSoftScrollStore();
   const isSaved = savedBooks.some((b) => b.id === book.id);
 
   const handleClick = () => {
     setCurrentBook(book);
+    addRecentBook(book);
     setCurrentView('book-detail');
   };
 

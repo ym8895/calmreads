@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
 import { categories } from '@/lib/categories';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Compass } from 'lucide-react';
 import { CategoryBookIcon } from './ArtisticBook';
 
 const container = {
@@ -27,6 +27,20 @@ export function InterestPicker() {
     try {
       const { fetchRecommendedBooks } = await import('@/lib/api');
       const books = await fetchRecommendedBooks(selectedInterests);
+      setRecommendedBooks(books);
+    } catch (error) {
+      console.error('Failed to fetch books:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBrowseAll = async () => {
+    setIsLoading(true);
+    setCurrentView('discover');
+    try {
+      const { fetchRecommendedBooks } = await import('@/lib/api');
+      const books = await fetchRecommendedBooks([]);
       setRecommendedBooks(books);
     } catch (error) {
       console.error('Failed to fetch books:', error);
@@ -90,7 +104,17 @@ export function InterestPicker() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.4 }}
+        className="flex flex-col sm:flex-row items-center gap-3"
       >
+        <Button
+          onClick={handleBrowseAll}
+          size="lg"
+          className="rounded-2xl px-6 py-6 text-base font-semibold bg-transparent border-2 border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
+        >
+          <Compass className="w-5 h-5 mr-2" />
+          Browse All
+        </Button>
+        <span className="text-muted-foreground/40 hidden sm:inline">or</span>
         <Button
           onClick={handleDiscover}
           disabled={selectedInterests.length === 0}

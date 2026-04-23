@@ -13,6 +13,7 @@ import { BookDetailView } from '@/components/softscroll/BookDetailView';
 import { ReaderView } from '@/components/softscroll/ReaderView';
 import { SavedBooksView } from '@/components/softscroll/SavedBooksView';
 import { LandingPage } from '@/components/softscroll/LandingPage';
+import { BottomNav } from '@/components/softscroll/BottomNav';
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -45,7 +46,7 @@ function AppContent() {
       </button>
 
       {/* Center Content */}
-      <main className="flex-1 min-w-0 lg:ml-0">
+      <main className="flex-1 min-w-0 lg:ml-0 pb-20 lg:pb-0">
         <Header />
         <AnimatePresence mode="wait">
           {currentView === 'interests' && (
@@ -73,11 +74,14 @@ function AppContent() {
               <SavedBooksView />
             </motion.div>
           )}
-        </AnimatePresence>
+</AnimatePresence>
       </main>
 
       {/* Right Action Panel */}
       <ActionPanel />
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }

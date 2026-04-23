@@ -15,6 +15,9 @@ interface SoftScrollState {
   slides: Slide[] | null;
   audioUrl: string | null;
   isLoading: boolean;
+  searchQuery: string;
+  recentSearches: string[];
+  recentBooks: Book[];
   readerSettings: {
     fontSize: number;
     lineHeight: number;
@@ -32,6 +35,9 @@ interface SoftScrollState {
   setSlides: (slides: Slide[] | null) => void;
   setAudioUrl: (url: string | null) => void;
   setIsLoading: (loading: boolean) => void;
+  setSearchQuery: (query: string) => void;
+  addRecentSearch: (query: string) => void;
+  addRecentBook: (book: Book) => void;
   updateReaderSettings: (settings: Partial<SoftScrollState['readerSettings']>) => void;
 }
 
@@ -47,6 +53,9 @@ export const useSoftScrollStore = create<SoftScrollState>()(
       slides: null,
       audioUrl: null,
       isLoading: false,
+      searchQuery: '',
+      recentSearches: [],
+      recentBooks: [],
       readerSettings: {
         fontSize: 18,
         lineHeight: 1.8,
@@ -73,6 +82,15 @@ export const useSoftScrollStore = create<SoftScrollState>()(
       setSlides: (slides) => set({ slides }),
       setAudioUrl: (url) => set({ audioUrl: url }),
       setIsLoading: (loading) => set({ isLoading: loading }),
+      setSearchQuery: (query) => set({ searchQuery: query }),
+      addRecentSearch: (query) =>
+        set((state) => ({
+          recentSearches: [query, ...state.recentSearches.filter((q) => q !== query)].slice(0, 10),
+        })),
+      addRecentBook: (book) =>
+        set((state) => ({
+          recentBooks: [book, ...state.recentBooks.filter((b) => b.id !== book.id)].slice(0, 10),
+        })),
       updateReaderSettings: (settings) =>
         set((state) => ({
           readerSettings: { ...state.readerSettings, ...settings },
@@ -84,6 +102,8 @@ export const useSoftScrollStore = create<SoftScrollState>()(
         selectedInterests: state.selectedInterests,
         savedBooks: state.savedBooks,
         readerSettings: state.readerSettings,
+        recentSearches: state.recentSearches,
+        recentBooks: state.recentBooks,
       }),
     }
   )
