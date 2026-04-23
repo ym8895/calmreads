@@ -94,7 +94,7 @@ export function LandingPage() {
             {[
               { icon: Search, title: 'Pick Interests', desc: 'Select your favorite genres and topics' },
               { icon: BookOpen, title: 'Discover', desc: 'Browse curated book recommendations' },
-              { icon: Sparkles, title: 'Get Summary', desc: 'AI creates detailed narratives' },
+              { icon: Sparkles, title: 'Get Summary', desc: 'AI creates detailed narratives', isAI: true },
               { icon: Headphones, title: 'Listen', desc: 'Audio playback in the app' },
             ].map((item, i) => (
               <motion.div
@@ -109,6 +109,11 @@ export function LandingPage() {
                 </div>
                 <h3 className="font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.desc}</p>
+                {'isAI' in item && item.isAI && (
+                  <p className="text-xs text-muted-foreground/60 italic mt-3 max-w-[180px] mx-auto">
+                    Blending AI with thoughtful curation, these summaries offer a gentle feel for the book—not a replacement.
+                  </p>
+                )}
               </motion.div>
             ))}
           </div>

@@ -325,7 +325,7 @@ export function BookDetailView() {
                         </div>
                       ))}
                     </div>
-                  </div>
+</div>
                 </motion.div>
               )}
 
@@ -399,6 +399,13 @@ export function BookDetailView() {
                 >
                   <SlideCarousel slides={slides} />
                 </motion.div>
+              )}
+
+              {/* AI Disclaimer */}
+              {(activeTab === 'summary' || activeTab === 'slides') && (
+                <p className="text-xs text-muted-foreground/50 italic mt-8 pt-4 border-t border-border/30 text-center">
+                  Blending AI with thoughtful curation, these summaries offer a gentle feel for the book—not a replacement.
+                </p>
               )}
             </AnimatePresence>
           </div>
