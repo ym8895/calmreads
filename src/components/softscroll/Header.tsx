@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, ArrowLeft, Bookmark, Search, X, MessageSquare } from 'lucide-react';
+import { BookOpen, ArrowLeft, Bookmark, Search, X, MessageSquare, User } from 'lucide-react';
 import { useSoftScrollStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -97,12 +97,11 @@ export function Header() {
               <div className="w-8 h-8 rounded-lg bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center">
                 <BookOpen className="h-4 w-4 text-[#2C4A3F] dark:text-[#8FB9A8]" />
               </div>
-              <span className="text-sm font-semibold tracking-tight text-foreground/90 hidden sm:inline">SoftScroll</span>
             </div>
           </div>
 
-          {/* Right: Search & Saved & Feedback */}
-          <div className="flex items-center gap-2">
+          {/* Right: Search, Saved, Feedback, Profile */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <AnimatePresence mode="wait">
               {showSearch ? (
                 <motion.form
@@ -132,46 +131,47 @@ export function Header() {
                   </Button>
                 </motion.form>
               ) : (
-                <motion.div
+                <motion.button
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  onClick={toggleSearch}
+                  className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-muted/80 transition-colors text-xs text-muted-foreground"
                 >
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={toggleSearch}
-                    className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </motion.div>
+                  <Search className="h-4 w-4" />
+                  <span className="hidden sm:inline">Search</span>
+                </motion.button>
               )}
             </AnimatePresence>
 
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={() => setCurrentView('saved')}
-              className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-muted/80 transition-colors text-xs text-muted-foreground"
             >
               <Bookmark className="h-4 w-4" />
+              <span className="hidden sm:inline">Saved</span>
               {savedBooks.length > 0 && (
                 <span className="w-5 h-5 bg-[#8FB9A8] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {savedBooks.length}
                 </span>
               )}
-            </Button>
+            </button>
 
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => setShowFeedbackModal(true)}
-              className="rounded-xl hover:bg-muted/80 transition-colors"
-              title="Send Feedback"
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-muted/80 transition-colors text-xs text-muted-foreground"
             >
               <MessageSquare className="h-4 w-4" />
-            </Button>
+              <span className="hidden sm:inline">Feedback</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('profile')}
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl hover:bg-muted/80 transition-colors text-xs text-muted-foreground"
+            >
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </button>
           </div>
         </div>
       </motion.header>
