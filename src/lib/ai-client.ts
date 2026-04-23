@@ -34,7 +34,7 @@ const providers: ProviderConfig[] = [
   { name: 'groq', client: groq, weight: 3, failures: 0, lastFailure: 0 },
   { name: 'deepseek', client: deepseek, weight: 2, failures: 0, lastFailure: 0 },
   { name: 'mistral', client: mistral, weight: 2, failures: 0, lastFailure: 0 },
-  { name: 'gemini', client: null, weight: 1, failures: 0, lastFailure: 0 },
+  { name: 'gemini', client: null, weight: 0, failures: 0, lastFailure: 0 },
 ];
 
 let usageLogger: ((data: { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; endpoint: string; responseTimeMs: number; status: string }) => void) | null = null;
