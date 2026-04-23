@@ -16,10 +16,17 @@ export function BookCard({ book, index, compact = false }: BookCardProps) {
   const { setCurrentBook, setCurrentView, savedBooks, toggleSaveBook, addRecentBook } = useSoftScrollStore();
   const isSaved = savedBooks.some((b) => b.id === book.id);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     setCurrentBook(book);
     addRecentBook(book);
     setCurrentView('book-detail');
+    // Track view for trending
+    try {
+      const { trackBookView } = await import('@/lib/api');
+      trackBookView(book.id, book.title);
+    } catch (e) {
+      // Silent fail
+    }
   };
 
   return (

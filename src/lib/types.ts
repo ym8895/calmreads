@@ -36,4 +36,4 @@ export interface BookRecommendRequest {
   interests: string[];
 }
 
-export type AppView = 'interests' | 'discover' | 'book-detail' | 'reader' | 'saved' | 'landing';
+export type AppView = 'interests' | 'discover' | 'book-detail' | 'reader' | 'saved' | 'landing' | 'profile' | 'history';

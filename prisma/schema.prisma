@@ -19,6 +19,24 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  bookViews BookView[]
+}
+
+model BookView {
+  id        String   @id @default(cuid())
+  bookId   String
+  bookTitle String
+  viewedAt DateTime @default(now())
+  userId  String?
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  message   String
+  category  String   @default("general") // bug, feature, general
+  createdAt DateTime @default(now())
+  isRead   Boolean @default(false)
 }
 
 model Post {

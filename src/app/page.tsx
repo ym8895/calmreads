@@ -14,6 +14,8 @@ import { ReaderView } from '@/components/softscroll/ReaderView';
 import { SavedBooksView } from '@/components/softscroll/SavedBooksView';
 import { LandingPage } from '@/components/softscroll/LandingPage';
 import { BottomNav } from '@/components/softscroll/BottomNav';
+import { ProfileView } from '@/components/softscroll/ProfileView';
+import { HistoryView } from '@/components/softscroll/HistoryView';
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -22,8 +24,11 @@ const pageVariants = {
 };
 
 function AppContent() {
-  const { currentView } = useSoftScrollStore();
+  const { currentView, savedBooks, recentBooks, selectedInterests } = useSoftScrollStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Check if user has used app before
+  const hasInteracted = savedBooks.length > 0 || recentBooks.length > 0 || selectedInterests.length > 0;
 
   // Show landing page if on landing view
   if (currentView === 'landing') {
@@ -72,6 +77,16 @@ function AppContent() {
           {currentView === 'saved' && (
             <motion.div key="saved" variants={pageVariants} initial="initial" animate="animate" exit="exit">
               <SavedBooksView />
+            </motion.div>
+          )}
+          {currentView === 'profile' && (
+            <motion.div key="profile" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <ProfileView />
+            </motion.div>
+          )}
+          {currentView === 'history' && (
+            <motion.div key="history" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+              <HistoryView />
             </motion.div>
           )}
 </AnimatePresence>

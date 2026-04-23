@@ -2,15 +2,17 @@
 
 import { motion } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
-import { Home, Search, Bookmark, User } from 'lucide-react';
+import { Home, Search, Bookmark, User, History } from 'lucide-react';
 
 export function BottomNav() {
-  const { currentView, setCurrentView, savedBooks } = useSoftScrollStore();
+  const { currentView, setCurrentView, savedBooks, recentBooks } = useSoftScrollStore();
 
   const navItems = [
     { id: 'interests', icon: Home, label: 'Home' },
     { id: 'discover', icon: Search, label: 'Discover' },
+    { id: 'history', icon: History, label: 'History', badge: recentBooks.length },
     { id: 'saved', icon: Bookmark, label: 'Saved', badge: savedBooks.length },
+    { id: 'profile', icon: User, label: 'Profile' },
   ];
 
   return (

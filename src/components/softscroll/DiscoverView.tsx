@@ -2,16 +2,41 @@
 
 import { motion } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
+import type { Book } from '@/lib/types';
 import { BookCard } from './BookCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, BookX, Search, Clock } from 'lucide-react';
-import { useState } from 'react';
+import { RefreshCw, BookX, Search, Clock, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { categories } from '@/lib/categories';
 
 export function DiscoverView() {
-  const { recommendedBooks, setCurrentView, isLoading, selectedInterests, setRecommendedBooks, setIsLoading, searchQuery, setSearchQuery, recentSearches, recentBooks } = useSoftScrollStore();
+  const { recommendedBooks, setCurrentView, isLoading, selectedInterests, setRecommendedBooks, setIsLoading, searchQuery, setSearchQuery, recentBooks } = useSoftScrollStore();
   const [sortBy, setSortBy] = useState<'default' | 'title' | 'year'>('default');
-  const [activeTab, setActiveTab] = useState<'recommended' | 'recent' | 'search'>('recommended');
+  const [activeTab, setActiveTab] = useState<'recommended' | 'recent' | 'trending' | 'search'>('recommended');
+  const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
+  const [isLoadingTrending, setIsLoadingTrending] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+
+  useEffect(() => {
+    if (activeTab === 'trending' && trendingBooks.length === 0) {
+      setIsLoadingTrending(true);
+      import('@/lib/api').then(({ fetchTrendingBooks }) => 
+        fetchTrendingBooks(10, 24).then(data => {
+          // Map trending to books - we need to fetch details
+          setTrendingBooks(data.map(t => ({
+            id: t.bookId,
+            title: t.bookTitle,
+            author: '',
+            categories: [],
+            description: '',
+            coverImage: '',
+          })));
+          setIsLoadingTrending(false);
+        }).catch(() => setIsLoadingTrending(false))
+      );
+    }
+  }, [activeTab]);
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -49,6 +74,11 @@ export function DiscoverView() {
 
   // Filter and sort
   let filteredBooks = recommendedBooks;
+  if (categoryFilter) {
+    filteredBooks = filteredBooks.filter(b => 
+      b.categories.includes(categoryFilter)
+    );
+  }
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
     filteredBooks = filteredBooks.filter(b =>
@@ -108,12 +138,13 @@ export function DiscoverView() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="mb-4 flex gap-1 bg-muted/30 p-1 rounded-xl w-fit"
+        className="mb-4 flex gap-1 bg-muted/30 p-1 rounded-xl w-fit flex-wrap"
       >
         {[
           { id: 'recommended', label: 'Recommended' },
-          { id: 'recent', label: 'Recently Viewed' },
-          { id: 'search', label: 'Search Results' },
+          { id: 'trending', label: 'Trending' },
+          { id: 'recent', label: 'Recent' },
+          { id: 'search', label: 'Search' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -158,9 +189,19 @@ export function DiscoverView() {
           onChange={(e) => setSortBy(e.target.value as any)}
           className="px-4 py-2.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#8FB9A8] cursor-pointer"
         >
-          <option value="default">Default Order</option>
-          <option value="title">Sort by Title</option>
-          <option value="year">Sort by Year</option>
+          <option value="default">Sort</option>
+          <option value="title">Title A-Z</option>
+          <option value="year">Newest First</option>
+        </select>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="px-4 py-2.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[#8FB9A8] cursor-pointer"
+        >
+          <option value="">All Categories</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
         </select>
       </motion.div>
 
@@ -222,6 +263,41 @@ export function DiscoverView() {
             <BookCard key={book.id} book={book} index={index} compact />
           ))}
         </div>
+      )}
+
+      {/* Trending Tab */}
+      {(activeTab === 'trending') && (
+        isLoadingTrending ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-card border border-border/50 rounded-2xl p-4">
+                <Skeleton className="w-20 sm:w-24 h-28 sm:h-36 rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : trendingBooks.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-[#8FB9A8]" />
+              <span className="text-sm text-muted-foreground">Most viewed in last 24 hours</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+              {trendingBooks.map((book, index) => (
+                <BookCard key={book.id} book={book} index={index} compact />
+              ))}
+            </div>
+          </motion.div>
+        ) : (
+          <div className="text-center py-16">
+            <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground/80 mb-2">No trending yet</h3>
+            <p className="text-muted-foreground text-sm">Check back soon as more people discover books</p>
+          </div>
+        )
       )}
 
       {/* Recently Viewed Tab */}

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { MessageSquare, Check, CheckCircle } from 'lucide-react';
 
 interface UsageSummary {
   totalRequests: number;
@@ -34,6 +35,14 @@ interface UsageData {
     status: string;
     created_at: string;
   }>;
+}
+
+interface FeedbackItem {
+  id: string;
+  message: string;
+  category: string;
+  createdAt: string;
+  isRead: boolean;
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -99,6 +108,9 @@ export default function AdminDashboard() {
   const [hours, setHours] = useState(24);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -130,6 +142,27 @@ export default function AdminDashboard() {
     }
   }, [hours, isAuthenticated]);
 
+  const fetchFeedback = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setFeedbackLoading(true);
+    try {
+      const { fetchFeedback } = await import('@/lib/api');
+      const data = await fetchFeedback(false);
+      setFeedback(data.feedback);
+      setUnreadCount(data.unreadCount);
+    } catch (err) {
+      console.error('Feedback fetch error:', err);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchFeedback();
+    }
+  }, [fetchFeedback, isAuthenticated]);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchUsage();
@@ -137,6 +170,17 @@ export default function AdminDashboard() {
       return () => clearInterval(interval);
     }
   }, [fetchUsage, isAuthenticated]);
+
+  const markAsRead = async (id: string) => {
+    try {
+      const { markFeedbackRead } = await import('@/lib/api');
+      await markFeedbackRead(id, true);
+      setFeedback(prev => prev.map(f => f.id === id ? { ...f, isRead: true } : f));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Failed to mark read:', err);
+    }
+  };
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
@@ -239,6 +283,9 @@ export default function AdminDashboard() {
               <TabsList>
                 <TabsTrigger value="providers">By Provider</TabsTrigger>
                 <TabsTrigger value="recent">Recent Requests</TabsTrigger>
+                <TabsTrigger value="feedback">
+                  Feedback {unreadCount > 0 && <span className="ml-1.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full inline-flex items-center justify-center">{unreadCount}</span>}
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="providers" className="mt-4">
@@ -333,6 +380,59 @@ export default function AdminDashboard() {
                         </tbody>
                       </table>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="feedback" className="mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Feedback</CardTitle>
+                    <CardDescription>Suggestions and bug reports from users</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {feedbackLoading ? (
+                      <div className="text-center py-8">Loading...</div>
+                    ) : feedback.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No feedback yet
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {feedback.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`p-4 rounded-xl border ${
+                              item.isRead ? 'border-border/30 bg-muted/20' : 'border-[#8FB9A8]/30 bg-[#D4E6E0]/20'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {item.category}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDate(item.createdAt)}
+                                  </span>
+                                </div>
+                                <p className="text-foreground">{item.message}</p>
+                              </div>
+                              {!item.isRead && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => markAsRead(item.id)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <CheckCircle className="w-4 h-4" /> Mark Read
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
