@@ -231,8 +231,8 @@ export function DiscoverView() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!isLoading && recommendedBooks.length === 0 && (
+      {/* Empty State - Only show on Recommended tab */}
+      {!isLoading && activeTab === 'recommended' && recommendedBooks.length === 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -249,6 +249,33 @@ export function DiscoverView() {
             <RefreshCw className="w-4 h-4 mr-2" />Try Again
           </Button>
         </motion.div>
+      )}
+
+      {/* Empty Recent */}
+      {!isLoading && activeTab === 'recent' && recentBooks.length === 0 && (
+        <div className="text-center py-16">
+          <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No recently viewed</h3>
+          <p className="text-muted-foreground text-sm">Books you view will appear here</p>
+        </div>
+      )}
+
+      {/* Empty Trending */}
+      {!isLoading && activeTab === 'trending' && trendingBooks.length === 0 && (
+        <div className="text-center py-16">
+          <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground/80 mb-2">No trending yet</h3>
+          <p className="text-muted-foreground text-sm">Check back soon as more people discover books</p>
+        </div>
+      )}
+
+      {/* Empty Search */}
+      {!isLoading && activeTab === 'search' && !searchQuery && (
+        <div className="text-center py-16">
+          <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground/80 mb-2">Search for books</h3>
+          <p className="text-muted-foreground text-sm">Try searching by title, author, or category</p>
+        </div>
       )}
 
       {/* No search results */}
