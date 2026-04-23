@@ -141,17 +141,16 @@ export function CategoryBookIcon({ categoryId, categoryName, emoji, isSelected, 
           style={{ backgroundColor: colors.spine + '80' }}
         />
 
-        {/* Decorative motif area - SVG patterns are elegant book illustrations */}
+        {/* Decorative motif area - emoji front + SVG background */}
         <div className="absolute inset-2 flex items-center justify-center">
           {motifSVG ? (
             <svg 
               viewBox="15 10 30 30" 
-              className="w-full h-full"
+              className="absolute inset-0 w-full h-full opacity-30"
               dangerouslySetInnerHTML={{ __html: motifSVG(colors.accent) }}
             />
-          ) : (
-            <span className="text-2xl opacity-70">{emoji}</span>
-          )}
+          ) : null}
+          <span className="text-2xl relative z-10 drop-shadow-md">{emoji}</span>
         </div>
 
         {/* Selected checkmark */}
