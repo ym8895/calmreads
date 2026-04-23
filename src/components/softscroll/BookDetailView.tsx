@@ -23,12 +23,16 @@ export function BookDetailView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [localStory, setLocalStory] = useState<AIStory | null>(null);
+  const [audioContentType, setAudioContentType] = useState<'story' | 'summary'>('story');
 
   const isSaved = currentBook ? savedBooks.some((b) => b.id === currentBook.id) : false;
 
   // Stop audio and clear errors when switching to a different book
   useEffect(() => {
     setError(null);
+    setAudioUrl(null);
+    setLocalStory(null);
+    setAudioContentType('story');
     return () => {
       stopGlobalSpeech();
     };
@@ -64,20 +68,63 @@ export function BookDetailView() {
   };
 
   const generateAudio = async () => {
-    if (!summary || audioUrl) return;
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const data = await fetchAIAudio(summary);
-      if (data.useBrowserTts) {
-        setAudioUrl(data.text || '');
-      } else {
-        setAudioUrl(data.audioUrl || '');
+    if (audioContentType === 'story') {
+      // Generate story first if not exists, then audio
+      if (!localStory) {
+        setIsGenerating(true);
+        setError(null);
+        try {
+          const storyData = await fetchAIStory(currentBook);
+          setLocalStory(storyData);
+          // After story, generate audio from story
+          const storyText = storyData.introduction + '\n\n' + 
+            (storyData.chapters || []).map((ch: any) => ch.content).join('\n\n');
+          const audioData = await fetchAIAudio({ fullText: storyText } as AISummary);
+          if (audioData.useBrowserTts) {
+            setAudioUrl(audioData.text || '');
+          } else {
+            setAudioUrl(audioData.audioUrl || '');
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
+        } finally {
+          setIsGenerating(false);
+        }
+      } else if (audioUrl) {
+        // Regenerate from story if not current type
+        const storyText = localStory.introduction + '\n\n' + 
+          (localStory.chapters || []).map((ch: any) => ch.content).join('\n\n');
+        setIsGenerating(true);
+        try {
+          const audioData = await fetchAIAudio({ fullText: storyText } as AISummary);
+          if (audioData.useBrowserTts) {
+            setAudioUrl(audioData.text || '');
+          } else {
+            setAudioUrl(audioData.audioUrl || '');
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
+        } finally {
+          setIsGenerating(false);
+        }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
-    } finally {
-      setIsGenerating(false);
+    } else {
+      // Quick Summary mode
+      if (!summary || audioUrl) return;
+      setIsGenerating(true);
+      setError(null);
+      try {
+        const data = await fetchAIAudio(summary);
+        if (data.useBrowserTts) {
+          setAudioUrl(data.text || '');
+        } else {
+          setAudioUrl(data.audioUrl || '');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to generate audio. Please try again.');
+      } finally {
+        setIsGenerating(false);
+      }
     }
   };
 
@@ -343,9 +390,30 @@ export function BookDetailView() {
                       <Volume2 className="w-8 h-8 text-[#7AA896] dark:text-[#8FB9A8]" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground/90">Audio Overview</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Listen to an audio summary of this book
-                    </p>
+                    
+                    {/* Toggle: Full Story / Quick Summary */}
+                    <div className="flex items-center justify-center gap-2 mt-3">
+                      <button
+                        onClick={() => { setAudioContentType('story'); setAudioUrl(null); }}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                          audioContentType === 'story'
+                            ? 'bg-[#8FB9A8] text-white'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Full Story
+                      </button>
+                      <button
+                        onClick={() => { setAudioContentType('summary'); setAudioUrl(null); }}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                          audioContentType === 'summary'
+                            ? 'bg-[#8FB9A8] text-white'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        Quick Summary
+                      </button>
+                    </div>
                   </div>
                   {audioUrl ? (
                     audioUrl.startsWith('data:') ? (
