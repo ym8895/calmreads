@@ -2,56 +2,9 @@
 
 import { categories } from '@/lib/categories';
 
-// Category icon image mapping (AI-generated icons)
+// Category icon image mapping (AI-generated icons) - DISABLED, using SVG motifs instead
+// Keep mapping empty to use SVG patterns which are more consistent and beautiful
 const categoryIconImages: Record<string, string> = {
-  'fiction': '/icons/categories/fiction.png',
-  'non-fiction': '/icons/categories/non-fiction.png',
-  'romance': '/icons/categories/romance.png',
-  'thriller': '/icons/categories/thriller.png',
-  'mystery': '/icons/categories/mystery.png',
-  'psychology': '/icons/categories/psychology.png',
-  'self-help': '/icons/categories/self-help.png',
-  'spirituality': '/icons/categories/spirituality.png',
-  'biography': '/icons/categories/biography.png',
-  'autobiography': '/icons/categories/autobiography.png',
-  'poetry': '/icons/categories/poetry.png',
-  'drama': '/icons/categories/drama.png',
-  'horror': '/icons/categories/horror.png',
-  'adventure': '/icons/categories/adventure.png',
-  'comedy': '/icons/categories/comedy.png',
-  'crime': '/icons/categories/crime.png',
-  'classic': '/icons/categories/classic.png',
-  'business': '/icons/categories/business.png',
-  'economics': '/icons/categories/economics.png',
-  'politics': '/icons/categories/politics.png',
-  'sociology': '/icons/categories/sociology.png',
-  'technology': '/icons/categories/technology.png',
-  'mathematics': '/icons/categories/mathematics.png',
-  'medicine': '/icons/categories/medicine.png',
-  'art': '/icons/categories/art.png',
-  'music': '/icons/categories/music.png',
-  'travel': '/icons/categories/travel.png',
-  'cooking': '/icons/categories/cooking.png',
-  'health': '/icons/categories/health.png',
-  'parenting': '/icons/categories/parenting.png',
-  'education': '/icons/categories/education.png',
-  'nature': '/icons/categories/nature.png',
-  'environment': '/icons/categories/environment.png',
-  'astronomy': '/icons/categories/astronomy.png',
-  'mythology': '/icons/categories/mythology.png',
-  'humor': '/icons/categories/humor.png',
-  'true-crime': '/icons/categories/true-crime.png',
-  'memoir': '/icons/categories/memoir.png',
-  'graphic-novels': '/icons/categories/graphic-novels.png',
-  'young-adult': '/icons/categories/young-adult.png',
-  'children': '/icons/categories/children.png',
-  'war': '/icons/categories/war.png',
-  'science-fiction': '/icons/categories/science-fiction.png',
-  'fantasy': '/icons/categories/fantasy.png',
-  'philosophy': '/icons/categories/philosophy.png',
-  'religion': '/icons/categories/religion.png',
-  'history': '/icons/categories/history.png',
-  'science': '/icons/categories/science.png',
 };
 
 // Color families for watercolor-style backgrounds
@@ -188,19 +141,14 @@ export function CategoryBookIcon({ categoryId, categoryName, emoji, isSelected, 
           style={{ backgroundColor: colors.spine + '80' }}
         />
 
-        {/* Decorative motif area */}
+        {/* Decorative motif area - SVG patterns are elegant book illustrations */}
         <div className="absolute inset-2 flex items-center justify-center">
-          {hasImage ? (
-            <img
-              src={categoryIconImages[categoryId]}
-              alt={categoryName}
-              className="w-full h-full object-cover rounded opacity-90"
-              loading="lazy"
+          {motifSVG ? (
+            <svg 
+              viewBox="15 10 30 30" 
+              className="w-full h-full"
+              dangerouslySetInnerHTML={{ __html: motifSVG(colors.accent) }}
             />
-          ) : motifSVG ? (
-            <svg viewBox="15 10 30 30" className="w-full h-full opacity-60">
-              {motifSVG(colors.accent)}
-            </svg>
           ) : (
             <span className="text-2xl opacity-70">{emoji}</span>
           )}
