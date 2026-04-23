@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Moon, Sun, ArrowLeft, Bookmark, Search, X } from 'lucide-react';
+import { BookOpen, ArrowLeft, Bookmark, Search, X, MessageSquare } from 'lucide-react';
 import { useSoftScrollStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,9 @@ export function Header() {
   const { currentView, setCurrentView, savedBooks, searchQuery, setSearchQuery, addRecentSearch } = useSoftScrollStore();
   const [showSearch, setShowSearch] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -42,109 +45,174 @@ export function Header() {
     }
   };
 
-  return (
-    <motion.header
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border/50"
-    >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        {/* Left: Back button */}
-        <div className="flex items-center gap-3">
-          <AnimatePresence mode="wait">
-            {currentView !== 'interests' && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setCurrentView(currentView === 'reader' ? 'book-detail' : 'discover')}
-                  className="rounded-xl hover:bg-muted/80 transition-colors"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+  const handleSendFeedback = async () => {
+    if (!feedbackMsg.trim()) return;
+    try {
+      const { submitFeedback } = await import('@/lib/api');
+      await submitFeedback(feedbackMsg, 'general');
+      setFeedbackSent(true);
+      setFeedbackMsg('');
+      setTimeout(() => {
+        setShowFeedbackModal(false);
+        setFeedbackSent(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to send feedback:', error);
+    }
+  };
 
-          {/* View title */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center">
-              <BookOpen className="h-4 w-4 text-[#2C4A3F] dark:text-[#8FB9A8]" />
+  return (
+    <>
+      <motion.header
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="sticky top-0 z-30 backdrop-blur-md bg-background/80 border-b border-border/50"
+      >
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          {/* Left: Back button */}
+          <div className="flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              {currentView !== 'interests' && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCurrentView(currentView === 'reader' ? 'book-detail' : 'discover')}
+                    className="rounded-xl hover:bg-muted/80 transition-colors"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* View title */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-[#D4E6E0] dark:bg-[#2C4A3F] flex items-center justify-center">
+                <BookOpen className="h-4 w-4 text-[#2C4A3F] dark:text-[#8FB9A8]" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight text-foreground/90 hidden sm:inline">SoftScroll</span>
             </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground/90 hidden sm:inline">SoftScroll</span>
+          </div>
+
+          {/* Right: Search & Saved & Feedback */}
+          <div className="flex items-center gap-2">
+            <AnimatePresence mode="wait">
+              {showSearch ? (
+                <motion.form
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleSearch}
+                  className="flex items-center"
+                >
+                  <input
+                    type="text"
+                    value={localSearch}
+                    onChange={(e) => setLocalSearch(e.target.value)}
+                    placeholder="Search books..."
+                    autoFocus
+                    className="w-32 sm:w-48 px-3 py-1.5 text-sm rounded-xl bg-muted/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleSearch}
+                    className="rounded-xl ml-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </motion.form>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSearch}
+                    className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentView('saved')}
+              className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
+            >
+              <Bookmark className="h-4 w-4" />
+              {savedBooks.length > 0 && (
+                <span className="w-5 h-5 bg-[#8FB9A8] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {savedBooks.length}
+                </span>
+              )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowFeedbackModal(true)}
+              className="rounded-xl hover:bg-muted/80 transition-colors"
+              title="Send Feedback"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+      </motion.header>
 
-        {/* Right: Search & Saved */}
-        <div className="flex items-center gap-2">
-          <AnimatePresence mode="wait">
-            {showSearch ? (
-              <motion.form
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.2 }}
-                onSubmit={handleSearch}
-                className="flex items-center"
-              >
-                <input
-                  type="text"
-                  value={localSearch}
-                  onChange={(e) => setLocalSearch(e.target.value)}
-                  placeholder="Search books..."
-                  autoFocus
-                  className="w-32 sm:w-48 px-3 py-1.5 text-sm rounded-xl bg-muted/50 border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleSearch}
-                  className="rounded-xl ml-1"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </motion.form>
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowFeedbackModal(false)}>
+          <div className="bg-card rounded-2xl p-5 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-3">Send Feedback</h3>
+            {feedbackSent ? (
+              <div className="text-center py-4 text-[#8FB9A8]">Thank you!</div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleSearch}
-                  className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </motion.div>
+              <>
+                <textarea
+                  value={feedbackMsg}
+                  onChange={(e) => setFeedbackMsg(e.target.value)}
+                  placeholder="Share your thoughts..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-xl bg-muted/30 border border-border/30 text-sm mb-3"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFeedbackModal(false)}
+                    className="flex-1 rounded-xl"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSendFeedback}
+                    disabled={!feedbackMsg.trim()}
+                    className="flex-1 rounded-xl bg-[#8FB9A8]"
+                  >
+                    Send
+                  </Button>
+                </div>
+              </>
             )}
-          </AnimatePresence>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentView('saved')}
-            className="rounded-xl hover:bg-muted/80 transition-colors gap-1.5 text-xs"
-          >
-            <Bookmark className="h-4 w-4" />
-            {savedBooks.length > 0 && (
-              <span className="w-5 h-5 bg-[#8FB9A8] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {savedBooks.length}
-              </span>
-            )}
-            <span className="hidden sm:inline">Saved</span>
-          </Button>
+          </div>
         </div>
-      </div>
-    </motion.header>
+      )}
+    </>
   );
 }
