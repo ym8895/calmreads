@@ -204,7 +204,7 @@ export async function chatWithFallback(
         if (next.client) {
           try {
             const completion = await next.client.chat.completions.create({
-              model: next.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+              model: next.name === 'groq' ? 'llama-3.1-8b-instant' : next.name === 'mistral' ? 'mistral-small-latest' : 'deepseek-chat',
               messages,
               temperature,
               max_tokens,
@@ -238,7 +238,7 @@ export async function chatWithFallback(
 
   try {
     const completion = await selected.client!.chat.completions.create({
-      model: selected.name === 'groq' ? 'llama-3.1-8b-instant' : 'deepseek-chat',
+      model: selected.name === 'groq' ? 'llama-3.1-8b-instant' : selected.name === 'mistral' ? 'mistral-small-latest' : 'deepseek-chat',
       messages,
       temperature,
       max_tokens,
