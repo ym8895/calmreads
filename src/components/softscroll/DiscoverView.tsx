@@ -108,7 +108,7 @@ export function DiscoverView() {
               Discover
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base mt-1">
-              Find your next favorite read
+              Explore the world of books
             </p>
           </div>
           <div className="flex items-center gap-2">
