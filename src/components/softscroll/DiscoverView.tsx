@@ -7,7 +7,7 @@ import { BookCard } from './BookCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, BookX, Search, Clock, TrendingUp } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { categories } from '@/lib/categories';
 import { fetchSearchBooks } from '@/lib/api';
 
@@ -21,9 +21,8 @@ export function DiscoverView() {
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
-  // Simple load on tab switch - only once when no data
+// Load on tab change to recommended - refresh data
   useEffect(() => {
-    // Only load when tab becomes 'recommended' and there's no data yet
     if (activeTab === 'trending' && trendingBooks.length === 0) {
       setIsLoadingTrending(true);
       import('@/lib/api').then(({ fetchTrendingBooks }) => 
@@ -40,34 +39,20 @@ export function DiscoverView() {
         }).catch(() => setIsLoadingTrending(false))
       );
     }
-  }, [activeTab]);
+}, [activeTab]);
 
-  // Clear search results when query changes
-  useEffect(() => {
-    setSearchResults([]);
-  }, [searchQuery]);
-
-  // Search when search tab is active
-  useEffect(() => {
-    const doSearch = async () => {
-      if (activeTab === 'search' && searchQuery.trim()) {
-        setIsLoadingSearch(true);
-        try {
-          const books = await fetchSearchBooks(searchQuery);
-          // Note: Category filtering disabled - Google Books categories don't match our categories
-          // Can enable later if needed
-          setSearchResults(books);
-        } catch (err) {
-          console.error('Search error:', err);
-        } finally {
-          setIsLoadingSearch(false);
-        }
-      }
-    };
-    
-    const timer = setTimeout(doSearch, 500);
-    return () => clearTimeout(timer);
-  }, [activeTab, searchQuery]);
+  // Handle tab click - load fresh data when switching to recommended
+  const handleTabChange = (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
+    if (tab === 'recommended' && selectedInterests.length > 0) {
+      setIsLoading(true);
+      import('@/lib/api').then(({ fetchRecommendedBooks }) => 
+        fetchRecommendedBooks(selectedInterests).then(books => {
+          setRecommendedBooks(books);
+        }).catch(() => {}).finally(() => setIsLoading(false))
+      );
+    }
+    setDiscoverTab(tab);
+  };
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -82,19 +67,20 @@ export function DiscoverView() {
     }
   };
 
-  // Load recommended books when Browse All is clicked
+  // Load recommended books when Browse All is clicked - same as tab click
   const handleBrowseAll = async () => {
-    setIsLoading(true);
-    setSearchQuery('');
-    setDiscoverTab('recommended');
-    try {
-      const { fetchRecommendedBooks } = await import('@/lib/api');
-      const books = await fetchRecommendedBooks(selectedInterests);
-      setRecommendedBooks(books);
-    } catch (error) {
-      console.error('Failed to load books:', error);
-    } finally {
-      setIsLoading(false);
+    if (selectedInterests.length > 0) {
+      setIsLoading(true);
+      setDiscoverTab('recommended');
+      try {
+        const { fetchRecommendedBooks } = await import('@/lib/api');
+        const books = await fetchRecommendedBooks(selectedInterests);
+        setRecommendedBooks(books);
+      } catch (error) {
+        console.error('Failed to load books:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -106,9 +92,25 @@ export function DiscoverView() {
     }
   };
 
-  const handleTabChange = (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
-    setDiscoverTab(tab);
-  };
+  // Search when search tab is active
+  useEffect(() => {
+    const doSearch = async () => {
+      if (activeTab === 'search' && searchQuery.trim()) {
+        setIsLoadingSearch(true);
+        try {
+          const books = await fetchSearchBooks(searchQuery);
+          setSearchResults(books);
+        } catch (err) {
+          console.error('Search error:', err);
+        } finally {
+          setIsLoadingSearch(false);
+        }
+      }
+    };
+    
+    const timer = setTimeout(doSearch, 500);
+    return () => clearTimeout(timer);
+  }, [activeTab, searchQuery]);
 
   // Filter and sort
   let filteredBooks = recommendedBooks;
