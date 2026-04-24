@@ -96,18 +96,14 @@ export function DiscoverView() {
     }
   };
 
-  // Determine which books to show based on active tab
-  const displayBooks = activeTab === 'search' 
-    ? searchResults 
-    : activeTab === 'trending' 
-      ? trendingBooks 
-      : filteredBooks;
+  // Filter and sort
+  let filteredBooks = recommendedBooks;
   if (categoryFilter) {
     filteredBooks = filteredBooks.filter(b => 
       b.categories.includes(categoryFilter)
     );
   }
-  if (searchQuery.trim()) {
+  if (searchQuery.trim() && activeTab !== 'search' && activeTab !== 'trending') {
     const q = searchQuery.toLowerCase();
     filteredBooks = filteredBooks.filter(b =>
       b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) ||
@@ -116,6 +112,13 @@ export function DiscoverView() {
   }
   if (sortBy === 'title') filteredBooks = [...filteredBooks].sort((a, b) => a.title.localeCompare(b.title));
   if (sortBy === 'year') filteredBooks = [...filteredBooks].sort((a, b) => (b.publishedYear || 0) - (a.publishedYear || 0));
+
+  // Determine which books to show based on active tab
+  const displayBooks = activeTab === 'search' 
+    ? searchResults 
+    : activeTab === 'trending' 
+      ? trendingBooks 
+      : filteredBooks;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
