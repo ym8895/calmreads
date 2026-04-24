@@ -39,6 +39,16 @@ export function DiscoverView() {
         }).catch(() => setIsLoadingTrending(false))
       );
     }
+    
+    // Load recommended books when tab is clicked and no books exist
+    if (activeTab === 'recommended' && recommendedBooks.length === 0 && selectedInterests.length > 0) {
+      setIsLoading(true);
+      import('@/lib/api').then(({ fetchRecommendedBooks }) => 
+        fetchRecommendedBooks(selectedInterests).then(books => {
+          setRecommendedBooks(books);
+        }).catch(() => {}).finally(() => setIsLoading(false))
+      );
+    }
   }, [activeTab]);
 
   // Clear search results when query changes
