@@ -18,25 +18,20 @@ async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
     );
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.docs || []).map((doc: Record<string, unknown>) => ({
+return (data.docs || []).map((doc: Record<string, unknown>) => ({
       id: `ol-${doc.key}`,
       title: doc.title || 'Unknown Title',
       author: Array.isArray(doc.author_name) ? doc.author_name[0] : (doc.author_name as string) || 'Unknown Author',
       description: Array.isArray(doc.subject) ? doc.subject.slice(0, 5).join(', ') : '',
       coverImage: doc.cover_i
         ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
-: '/placeholder-book.svg',
-        previewLink: (volumeInfo?.previewLink as string) || (volumeInfo?.infoLink as string) || '#',
-        buyLink: (volumeInfo?.infoLink as string) || undefined,
-        isFree: (volumeInfo as any)?.accessInfo?.viewability === 'ALL_PUBLIC',
-        fullTextUrl: (volumeInfo as any)?.accessInfo?.viewability === 'ALL_PUBLIC' 
-          ? (volumeInfo?.previewLink as string) 
-          : undefined,
-        categories: Array.isArray(volumeInfo?.categories) ? volumeInfo.categories as string[] : [],
-        publishedYear: volumeInfo?.publishedDate ? parseInt(String(volumeInfo.publishedDate)) || undefined : undefined,
-        pageCount: volumeInfo?.pageCount as number | undefined,
-      };
-    });
+        : '/placeholder-book.svg',
+      previewLink: `https://openlibrary.org${doc.key}`,
+      isFree: true,
+      fullTextUrl: `https://openlibrary.org${doc.key}`,
+      categories: Array.isArray(doc.subject) ? doc.subject.slice(0, 3) as string[] : [],
+      publishedYear: doc.first_publish_year as number | undefined,
+}));
   } catch {
     return [];
   }
