@@ -259,8 +259,8 @@ const generateAudio = async () => {
               {currentBook.isFree && currentBook.fullTextUrl && (
                 <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
                   {currentBook.fullTextUrl.includes('gutenberg') 
-                    ? '★ Free on Gutenberg - no signup'
-                    : '★ Open Library - may need account'}
+                    ? '★ Free on Gutenberg'
+                    : '★ Open Library'}
                 </span>
               )}
               {currentBook.isFree && currentBook.fullTextUrl && (
@@ -519,6 +519,20 @@ const generateAudio = async () => {
                 >
                   <SlideCarousel slides={slides} />
                 </motion.div>
+              )}
+
+              {/* Free Book Disclaimer */}
+              {currentBook.isFree && currentBook.fullTextUrl && (
+                <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-2">
+                    📖 Free Book Access
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    {currentBook.fullTextUrl.includes('gutenberg') 
+                      ? 'This book is free on Project Gutenberg - no signup required to read.'
+                      : 'This book is from Open Library. Some features may require a free account.'}
+                  </p>
+                </div>
               )}
 
               {/* AI Disclaimer */}
