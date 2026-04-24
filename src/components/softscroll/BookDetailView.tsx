@@ -39,8 +39,7 @@ export function BookDetailView() {
   }, [currentBook?.id]);
 
   const generateSummary = async () => {
-    if (!currentBook) return;
-    if (summary) return;
+    if (!currentBook || isGenerating || summary) return;
     setIsGenerating(true);
     setError(null);
     try {
@@ -54,7 +53,7 @@ export function BookDetailView() {
   };
 
   const generateSlides = async () => {
-    if (!summary || slides) return;
+    if (!summary || slides || isGenerating) return;
     setIsGenerating(true);
     setError(null);
     try {
@@ -67,7 +66,8 @@ export function BookDetailView() {
     }
   };
 
-  const generateAudio = async () => {
+const generateAudio = async () => {
+    if (isGenerating) return;
     // Quick Summary: Use existing summary or generate first
     if (audioContentType === 'summary') {
       if (!summary) {
@@ -148,8 +148,7 @@ export function BookDetailView() {
   };
 
   const generateStory = async () => {
-    if (!currentBook) return;
-    if (localStory) return;
+    if (!currentBook || isGenerating || localStory) return;
     setIsGenerating(true);
     setError(null);
     try {
@@ -185,12 +184,6 @@ export function BookDetailView() {
     }
     else if (activeTab === 'story' && currentBook && !localStory) generateStory();
   }, [activeTab, currentBook?.id, summary, slides, localStory, audioUrl, audioContentType]);
-
-  useEffect(() => {
-    if (activeTab === 'summary' && currentBook && !summary) {
-      generateSummary();
-    }
-  }, [activeTab, summary, currentBook?.id]);
 
   if (!currentBook) return null;
 
