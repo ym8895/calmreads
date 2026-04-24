@@ -10,15 +10,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const googleKey = process.env.GOOGLE_BOOKS_API_KEY;
-    if (!googleKey) {
-      return NextResponse.json({ books: [], error: 'API key not configured' }, { status: 500 });
+    
+    // Build URL with or without API key
+    let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`;
+    if (googleKey) {
+      url += `&key=${googleKey}`;
     }
-
-    const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&key=${googleKey}`
-    );
+    
+    const res = await fetch(url);
     
     if (!res.ok) {
+      const errorText = await res.text();
+      console.error('[Search] Google Books error:', res.status, errorText);
       throw new Error(`Google Books API error: ${res.status}`);
     }
 
