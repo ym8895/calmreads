@@ -21,14 +21,9 @@ export function DiscoverView() {
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
-  // Keep track of last active tab to detect tab switches
-  const lastActiveTab = useRef(activeTab);
-
+  // Simple load on tab switch - only once when no data
   useEffect(() => {
-    // Only trigger when tab actually changes
-    if (activeTab === lastActiveTab.current) return;
-    lastActiveTab.current = activeTab;
-    
+    // Only load when tab becomes 'recommended' and there's no data yet
     if (activeTab === 'trending' && trendingBooks.length === 0) {
       setIsLoadingTrending(true);
       import('@/lib/api').then(({ fetchTrendingBooks }) => 
@@ -43,16 +38,6 @@ export function DiscoverView() {
           })));
           setIsLoadingTrending(false);
         }).catch(() => setIsLoadingTrending(false))
-      );
-    }
-    
-    // Load recommended books when switching to that tab
-    if (activeTab === 'recommended' && selectedInterests.length > 0) {
-      setIsLoading(true);
-      import('@/lib/api').then(({ fetchRecommendedBooks }) => 
-        fetchRecommendedBooks(selectedInterests).then(books => {
-          setRecommendedBooks(books);
-        }).catch(() => {}).finally(() => setIsLoading(false))
       );
     }
   }, [activeTab]);
@@ -97,12 +82,14 @@ export function DiscoverView() {
     }
   };
 
+  // Load recommended books when Browse All is clicked
   const handleBrowseAll = async () => {
     setIsLoading(true);
     setSearchQuery('');
+    setDiscoverTab('recommended');
     try {
       const { fetchRecommendedBooks } = await import('@/lib/api');
-      const books = await fetchRecommendedBooks([]);
+      const books = await fetchRecommendedBooks(selectedInterests);
       setRecommendedBooks(books);
     } catch (error) {
       console.error('Failed to load books:', error);
