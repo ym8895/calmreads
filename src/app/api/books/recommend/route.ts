@@ -75,11 +75,8 @@ export async function POST(request: NextRequest) {
       .slice(0, 15);
 
     const fetchPromises = searchTerms.map(async (term) => {
-      const [olBooks, gbBooks] = await Promise.all([
-        fetchFromOpenLibrary(term),
-        fetchFromGoogleBooks(term),
-      ]);
-      allBooks.push(...olBooks, ...gbBooks);
+      const olBooks = await fetchFromOpenLibrary(term);
+      allBooks.push(...olBooks);
     });
 
     await Promise.all(fetchPromises);
