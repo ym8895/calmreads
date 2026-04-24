@@ -66,7 +66,7 @@ export function DiscoverView() {
     }
   }, [activeTab]);
 
-  // Handle tab click - load fresh data when switching to recommended
+  // Handle tab click - load data when switching to trending
   const handleTabChange = async (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
     if (tab === 'recommended' && selectedInterests.length > 0) {
       // Clear search query and results first, then load recommended
@@ -83,6 +83,10 @@ export function DiscoverView() {
       } finally {
         setIsLoading(false);
       }
+    } else if (tab === 'trending') {
+      // Always reload trending on click
+      setTrendingBooks([]);
+      setDiscoverTab(tab);
     } else {
       setDiscoverTab(tab);
       // Clear search results when leaving search tab
