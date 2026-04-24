@@ -84,7 +84,7 @@ export function DiscoverView() {
       }
     } else if (tab === 'trending') {
       setDiscoverTab(tab);
-      // Force load trending
+      // Load trending immediately - show books first
       setIsLoadingTrending(true);
       try {
         const { fetchTrendingBooks } = await import('@/lib/api');
@@ -93,23 +93,31 @@ export function DiscoverView() {
           setIsLoadingTrending(false);
           return;
         }
-        // Fetch covers
+        // Set books first (without covers)
+        setTrendingBooks(data.map(t => ({
+          id: t.bookId,
+          title: t.bookTitle,
+          author: t.bookAuthor || 'Unknown Author',
+          categories: [],
+          description: '',
+          coverImage: '',
+        })));
+        setIsLoadingTrending(false);
+        
+        // Then fetch covers in background
         for (let i = 0; i < data.length; i++) {
           const t = data[i];
-          if ((!t.coverUrl || !t.coverUrl?.length) && t.bookTitle) {
+          if (t.bookTitle) {
             try {
               const res = await fetch(`/api/books/search?q=${encodeURIComponent(t.bookTitle)}`);
               const result = await res.json();
-              if (result.books?.[0]) {
-                data[i] = { 
-                  ...t, 
-                  coverUrl: result.books[0].coverImage || t.coverUrl, 
-                  bookAuthor: result.books[0].author || t.bookAuthor 
-                };
+              if (result.books?.[0]?.coverImage) {
+                data[i] = { ...t, coverUrl: result.books[0].coverImage, bookAuthor: result.books[0].author || t.bookAuthor };
               }
             } catch {}
           }
         }
+        // Update with covers
         setTrendingBooks(data.map(t => ({
           id: t.bookId,
           title: t.bookTitle,
@@ -118,9 +126,7 @@ export function DiscoverView() {
           description: '',
           coverImage: t.coverUrl || '',
         })));
-      } finally {
-        setIsLoadingTrending(false);
-      }
+      } catch {}
     } else {
       setDiscoverTab(tab);
       if (tab !== 'search') {
