@@ -60,8 +60,8 @@ export function BookCard({ book, index, compact = false }: BookCardProps) {
               {book.publishedYear && (
                 <span className="text-[10px] text-muted-foreground">{book.publishedYear}</span>
               )}
-              {book.isFree && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-600 dark:bg-green-500 text-white">
+{book.isFree && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-600 dark:bg-green-500 text-white">
                   FREE
                 </span>
               )}
@@ -107,7 +107,7 @@ export function BookCard({ book, index, compact = false }: BookCardProps) {
                   </span>
                 )}
 {book.isFree && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-600 dark:bg-green-500 text-white">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-600 dark:bg-green-500 text-white">
                   FREE
                 </span>
               )}
