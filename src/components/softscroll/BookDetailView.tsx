@@ -273,6 +273,13 @@ const generateAudio = async () => {
                   Read Free
                 </button>
               )}
+              {currentBook.isFree && currentBook.fullTextUrl && (
+                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                  {currentBook.fullTextUrl.includes('gutenberg') 
+                    ? 'Free on Gutenberg - no signup needed'
+                    : 'May require Open Library account'}
+                </p>
+              )}
               {currentBook.previewLink && (
                 <a
                   href={currentBook.previewLink}
