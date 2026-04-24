@@ -99,7 +99,7 @@ export async function trackBookView(bookId: string, bookTitle: string, userId?: 
   });
 }
 
-export async function fetchTrendingBooks(limit = 10, hours = 24): Promise<{ bookId: string; bookTitle: string; views: number }[]> {
+export async function fetchTrendingBooks(limit = 10, hours = 24): Promise<{ bookId: string; bookTitle: string; bookAuthor?: string; coverUrl?: string; views: number }[]> {
   const res = await fetch(`${API_BASE}/books/trending?limit=${limit}&hours=${hours}`);
   if (!res.ok) throw new Error('Failed to fetch trending');
   const data = await res.json();

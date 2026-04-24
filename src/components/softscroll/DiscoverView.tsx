@@ -28,11 +28,15 @@ export function DiscoverView() {
       import('@/lib/api').then(async ({ fetchTrendingBooks }) => {
         try {
           let data = await fetchTrendingBooks(10, 24);
-          
+          if (!data || data.length === 0) {
+            setIsLoadingTrending(false);
+            return;
+          }
+           
           // If no covers, try to fetch from Google Books
           for (let i = 0; i < data.length; i++) {
             const t = data[i];
-            if (!t.coverUrl && t.bookTitle) {
+            if ((!t.coverUrl || !t.coverUrl?.length) && t.bookTitle) {
               try {
                 const res = await fetch(`/api/books/search?q=${encodeURIComponent(t.bookTitle)}`);
                 const result = await res.json();
