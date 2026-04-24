@@ -255,6 +255,14 @@ const generateAudio = async () => {
               >
                 {isSaved ? 'Saved' : 'Save for Later'}
               </button>
+              {/* Disclaimer - show for all free books */}
+              {currentBook.isFree && currentBook.fullTextUrl && (
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                  {currentBook.fullTextUrl.includes('gutenberg') 
+                    ? '★ Free on Gutenberg - no signup'
+                    : '★ Open Library - may need account'}
+                </span>
+              )}
               {currentBook.isFree && currentBook.fullTextUrl && (
                 <button
                   onClick={handleReadBook}
@@ -263,22 +271,6 @@ const generateAudio = async () => {
                   <Book className="w-4 h-4" />
                   Read Free
                 </button>
-              )}
-              {currentBook.isFree && currentBook.fullTextUrl && (
-                <button
-                  onClick={handleReadBook}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors cursor-pointer inline-flex items-center gap-2"
-                >
-                  <Book className="w-4 h-4" />
-                  Read Free
-                </button>
-              )}
-              {currentBook.isFree && currentBook.fullTextUrl && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
-                  {currentBook.fullTextUrl.includes('gutenberg') 
-                    ? '★ Free on Gutenberg - no signup needed'
-                    : '★ May require Open Library account'}
-                </p>
               )}
               {currentBook.previewLink && (
                 <a
