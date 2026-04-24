@@ -53,18 +53,9 @@ export function DiscoverView() {
         setIsLoadingSearch(true);
         try {
           const books = await fetchSearchBooks(searchQuery);
-          // Filter by selected categories if any
-          let filtered = books;
-          if (selectedInterests.length > 0) {
-            filtered = books.filter(b => 
-              b.categories?.some(c => 
-                selectedInterests.some(interest => 
-                  c.toLowerCase().includes(interest.toLowerCase())
-                )
-              )
-            );
-          }
-          setSearchResults(filtered);
+          // Note: Category filtering disabled - Google Books categories don't match our categories
+          // Can enable later if needed
+          setSearchResults(books);
         } catch (err) {
           console.error('Search error:', err);
         } finally {
@@ -75,7 +66,7 @@ export function DiscoverView() {
     
     const timer = setTimeout(doSearch, 500);
     return () => clearTimeout(timer);
-  }, [activeTab, searchQuery, selectedInterests]);
+  }, [activeTab, searchQuery]);
 
   const handleRefresh = async () => {
     setIsLoading(true);

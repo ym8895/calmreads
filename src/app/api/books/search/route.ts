@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
         description: info.description || '',
         publishedYear: info.publishedDate?.split('-')[0],
         categories: info.categories || [],
+        coverImage: info.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
         thumbnail: info.imageLinks?.thumbnail?.replace('http:', 'https:'),
         pageCount: info.pageCount,
       };
