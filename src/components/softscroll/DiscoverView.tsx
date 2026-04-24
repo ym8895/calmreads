@@ -21,25 +21,43 @@ export function DiscoverView() {
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
-// Load on tab change to recommended - refresh data
+// Load trending books + fetch covers if missing
   useEffect(() => {
     if (activeTab === 'trending' && trendingBooks.length === 0) {
       setIsLoadingTrending(true);
-      import('@/lib/api').then(({ fetchTrendingBooks }) => 
-        fetchTrendingBooks(10, 24).then(data => {
+      import('@/lib/api').then(async ({ fetchTrendingBooks }) => {
+        try {
+          let data = await fetchTrendingBooks(10, 24);
+          
+          // If no covers, try to fetch from Google Books
+          const booksWithoutCovers = data.filter(t => !t.coverUrl);
+          if (booksWithoutCovers.length > 0) {
+            for (let t of booksWithoutCovers) {
+              try {
+                const res = await fetch(`/api/books/search?q=${encodeURIComponent(t.bookTitle)}`);
+                const result = await res.json();
+                if (result.books?.[0]?.coverImage) {
+                  t.coverUrl = result.books[0].coverImage;
+                  t.bookAuthor = result.books[0].author;
+                }
+              } catch {}
+            }
+          }
+          
           setTrendingBooks(data.map(t => ({
             id: t.bookId,
             title: t.bookTitle,
-            author: t.bookAuthor || '',
+            author: t.bookAuthor || 'Unknown Author',
             categories: [],
             description: '',
             coverImage: t.coverUrl || '',
           })));
+        } finally {
           setIsLoadingTrending(false);
-        }).catch(() => setIsLoadingTrending(false))
-      );
+        }
+      }).catch(() => setIsLoadingTrending(false));
     }
-}, [activeTab]);
+  }, [activeTab]);
 
   // Handle tab click - load fresh data when switching to recommended
   const handleTabChange = async (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
