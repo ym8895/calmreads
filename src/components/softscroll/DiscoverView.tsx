@@ -84,9 +84,49 @@ export function DiscoverView() {
         setIsLoading(false);
       }
     } else if (tab === 'trending') {
-      // Always reload trending on click
-      setTrendingBooks([]);
       setDiscoverTab(tab);
+      // Don't clear - just load if empty
+      if (trendingBooks.length === 0) {
+        setIsLoadingTrending(true);
+        import('@/lib/api').then(async ({ fetchTrendingBooks }) => {
+          try {
+            let data = await fetchTrendingBooks(10, 24);
+            if (!data || data.length === 0) {
+              setIsLoadingTrending(false);
+              return;
+            }
+             
+            // Fetch covers
+            for (let i = 0; i < data.length; i++) {
+              const t = data[i];
+              if ((!t.coverUrl || !t.coverUrl?.length) && t.bookTitle) {
+                try {
+                  const res = await fetch(`/api/books/search?q=${encodeURIComponent(t.bookTitle)}`);
+                  const result = await res.json();
+                  if (result.books?.[0]) {
+                    data[i] = { 
+                      ...t, 
+                      coverUrl: result.books[0].coverImage || t.coverUrl, 
+                      bookAuthor: result.books[0].author || t.bookAuthor 
+                    };
+                  }
+                } catch {}
+              }
+            }
+             
+            setTrendingBooks(data.map(t => ({
+              id: t.bookId,
+              title: t.bookTitle,
+              author: t.bookAuthor || 'Unknown Author',
+              categories: [],
+              description: '',
+              coverImage: t.coverUrl || '',
+            })));
+          } finally {
+            setIsLoadingTrending(false);
+          }
+        }).catch(() => setIsLoadingTrending(false));
+      }
     } else {
       setDiscoverTab(tab);
       // Clear search results when leaving search tab
