@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTrendingBooksSimple, trackBookView } from '@/lib/supabase';
+import { getTrendingBooks, trackBookView } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { bookId, bookTitle } = await request.json();
+    const { bookId, bookTitle, author, coverImage } = await request.json();
     
     if (!bookId || !bookTitle) {
       return NextResponse.json({ error: 'bookId and bookTitle required' }, { status: 400 });
     }
 
-    await trackBookView(bookId, bookTitle);
+    await trackBookView(bookId, bookTitle, author, coverImage);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to track view:', error);
@@ -23,12 +23,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const hours = parseInt(searchParams.get('hours') || '24');
 
-    const trending = await getTrendingBooksSimple(hours, limit);
+    const trending = await getTrendingBooks(hours, limit);
 
     return NextResponse.json({ 
       trending: trending.map(b => ({
-        bookId: b.book_id,
-        bookTitle: b.book_title,
+        bookId: b.bookId,
+        bookTitle: b.bookTitle,
+        bookAuthor: b.bookAuthor,
+        coverUrl: b.coverUrl,
         views: b.views,
       }))
     });
