@@ -17,6 +17,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
+const EXPLICIT_KEYWORDS = ['sex', 'erotic', 'porn', 'bdsm', 'bondage', 'xxx', 'seduction'];
+function isExplicit(text: string): boolean {
+  return EXPLICIT_KEYWORDS.some(kw => text.toLowerCase().includes(kw));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -25,15 +30,17 @@ export async function GET(request: NextRequest) {
 
     const trending = await getTrendingBooks(hours, limit);
 
-    return NextResponse.json({ 
-      trending: trending.map(b => ({
+    const cleanTrending = trending
+      .map(b => ({
         bookId: b.bookId,
         bookTitle: b.bookTitle,
         bookAuthor: b.bookAuthor,
         coverUrl: b.coverUrl,
         views: b.views,
       }))
-    });
+      .filter(b => !isExplicit(`${b.bookTitle} ${b.bookAuthor}`));
+
+    return NextResponse.json({ trending: cleanTrending.slice(0, limit) });
   } catch (error) {
     console.error('Failed to get trending:', error);
     return NextResponse.json({ error: 'Failed to get trending' }, { status: 500 });

@@ -123,6 +123,18 @@ Book discovery + AI audio summaries for curious minds.
 
 ---
 
+## 🚀 Quick Wins (High Impact, Low Effort)
+
+Quick additions to boost engagement and credibility:
+
+1. **Book Preview Modal** - Sample summary text + 15-sec audio clip before full summary
+2. **Recently Viewed** - localStorage history to improve return visits
+3. **Footer Links** - About, Contact, Privacy Policy (builds credibility)
+4. **Loading Animations** - Visual feedback during AI generation
+5. **Social Sharing** - Share summaries (organic growth channel)
+
+---
+
 ## Technical Notes
 
 ### TTS Providers
