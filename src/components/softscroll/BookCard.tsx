@@ -23,7 +23,7 @@ export function BookCard({ book, index, compact = false }: BookCardProps) {
     // Track view for trending
     try {
       const { trackBookView } = await import('@/lib/api');
-      trackBookView(book.id, book.title);
+      trackBookView(book.id, book.title, book.author, book.coverImage);
     } catch (e) {
       // Silent fail
     }

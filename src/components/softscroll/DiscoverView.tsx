@@ -30,10 +30,10 @@ export function DiscoverView() {
           setTrendingBooks(data.map(t => ({
             id: t.bookId,
             title: t.bookTitle,
-            author: '',
+            author: t.bookAuthor || '',
             categories: [],
             description: '',
-            coverImage: '',
+            coverImage: t.coverUrl || '',
           })));
           setIsLoadingTrending(false);
         }).catch(() => setIsLoadingTrending(false))

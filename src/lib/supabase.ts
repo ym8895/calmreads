@@ -119,18 +119,28 @@ export async function updateBookContent(
 export { CONTENT_VERSION };
 export { getFromSupabase, saveToSupabase };
 
-// Book Views for Trending
-export async function trackBookView(bookId: string, bookTitle: string): Promise<boolean> {
+// Book Views for Trending - now with more details
+export async function trackBookView(
+  bookId: string, 
+  bookTitle: string, 
+  author?: string, 
+  coverImage?: string
+): Promise<boolean> {
   if (!supabase) return false;
   try {
     const { error } = await supabase
       .from('book_views')
-      .insert({ book_id: bookId, book_title: bookTitle });
+      .insert({ 
+        book_id: bookId, 
+        book_title: bookTitle,
+        book_author: author || null,
+        cover_url: coverImage || null
+      });
     return !error;
   } catch { return false; }
 }
 
-export async function getTrendingBooks(hours = 24, limit = 10): Promise<{ book_id: string; book_title: string; views: number }[]> {
+export async function getTrendingBooks(hours = 24, limit = 10): Promise<{ bookId: string; bookTitle: string; bookAuthor: string; coverUrl: string; views: number }[]> {
   if (!supabase) return [];
   try {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
@@ -142,8 +152,10 @@ export async function getTrendingBooks(hours = 24, limit = 10): Promise<{ book_i
       });
     if (error || !data) return [];
     return data.map((d: any) => ({
-      book_id: d.book_id,
-      book_title: d.book_title,
+      bookId: d.book_id,
+      bookTitle: d.book_title,
+      bookAuthor: d.book_author || '',
+      coverUrl: d.cover_url || '',
       views: d.views
     }));
   } catch { return []; }
