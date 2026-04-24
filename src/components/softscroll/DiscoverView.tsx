@@ -9,12 +9,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, BookX, Search, Clock, TrendingUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { categories } from '@/lib/categories';
+import { fetchSearchBooks } from '@/lib/api';
 
 export function DiscoverView() {
   const { recommendedBooks, setCurrentView, isLoading, selectedInterests, setRecommendedBooks, setIsLoading, searchQuery, setSearchQuery, recentBooks, discoverTab, setDiscoverTab } = useSoftScrollStore();
   const [sortBy, setSortBy] = useState<'default' | 'title' | 'year'>('default');
   const activeTab = discoverTab;
   const [trendingBooks, setTrendingBooks] = useState<Book[]>([]);
+  const [searchResults, setSearchResults] = useState<Book[]>([]);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
@@ -37,6 +40,26 @@ export function DiscoverView() {
       );
     }
   }, [activeTab]);
+
+  // Search when search tab is active
+  useEffect(() => {
+    const doSearch = async () => {
+      if (activeTab === 'search' && searchQuery.trim() && searchResults.length === 0) {
+        setIsLoadingSearch(true);
+        try {
+          const books = await fetchSearchBooks(searchQuery);
+          setSearchResults(books);
+        } catch (err) {
+          console.error('Search error:', err);
+        } finally {
+          setIsLoadingSearch(false);
+        }
+      }
+    };
+    
+    const timer = setTimeout(doSearch, 500);
+    return () => clearTimeout(timer);
+  }, [activeTab, searchQuery]);
 
   const handleRefresh = async () => {
     setIsLoading(true);
@@ -69,15 +92,16 @@ export function DiscoverView() {
     e.preventDefault();
     if (searchQuery.trim()) {
       setDiscoverTab('search');
+      setSearchResults([]); // Clear previous results to trigger new search
     }
   };
 
-  const handleTabChange = (tab: typeof discoverTab) => {
-    setDiscoverTab(tab);
-  };
-
-  // Filter and sort
-  let filteredBooks = recommendedBooks;
+  // Determine which books to show based on active tab
+  const displayBooks = activeTab === 'search' 
+    ? searchResults 
+    : activeTab === 'trending' 
+      ? trendingBooks 
+      : filteredBooks;
   if (categoryFilter) {
     filteredBooks = filteredBooks.filter(b => 
       b.categories.includes(categoryFilter)
@@ -253,6 +277,46 @@ export function DiscoverView() {
       {!isLoading && activeTab === 'recommended' && filteredBooks.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
           {filteredBooks.map((book, index) => (
+            <BookCard key={book.id} book={book} index={index} compact />
+          ))}
+        </div>
+      )}
+
+      {/* Search Results */}
+      {activeTab === 'search' && (
+        <>
+          {isLoadingSearch ? (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-40 sm:h-48 rounded-lg" />
+              ))}
+            </div>
+          ) : searchResults.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+              {searchResults.map((book, index) => (
+                <BookCard key={book.id} book={book} index={index} compact />
+              ))}
+            </div>
+          ) : searchQuery.trim() ? (
+            <div className="text-center py-16">
+              <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground/80 mb-2">No books found</h3>
+              <p className="text-muted-foreground text-sm">Try a different search term</p>
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <Search className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground/80 mb-2">Search for books</h3>
+              <p className="text-muted-foreground text-sm">Enter a title, author, or topic</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Trending Tab */}
+      {!isLoadingTrending && activeTab === 'trending' && trendingBooks.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+          {trendingBooks.map((book, index) => (
             <BookCard key={book.id} book={book} index={index} compact />
           ))}
         </div>

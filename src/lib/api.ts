@@ -2,6 +2,13 @@ import type { Book, AISummary, Slide, AIStory } from './types';
 
 const API_BASE = '/api';
 
+export async function fetchSearchBooks(query: string): Promise<Book[]> {
+  const res = await fetch(`${API_BASE}/books/search?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error('Failed to search books');
+  const data = await res.json();
+  return data.books || [];
+}
+
 export async function fetchRecommendedBooks(interests: string[]): Promise<Book[]> {
   const res = await fetch(`${API_BASE}/books/recommend`, {
     method: 'POST',
