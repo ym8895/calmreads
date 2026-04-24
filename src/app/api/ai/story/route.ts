@@ -81,23 +81,33 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
     let story: AIStory | null = null;
     let rawContent = '';
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const completion = await chatWithFallback(
-          [
-            { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
-            { role: 'user', content: prompt },
-          ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 4000, endpoint: 'story' }
-        );
-        rawContent = completion.choices[0]?.message?.content || '';
-        story = tryParseJSON(rawContent);
-        if (story) break;
-      } catch (err) {
-        console.error(`[Story] Attempt ${attempt + 1}:`, err);
-        const e = err as Error & { status?: number };
-        if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
-          throw err;
+    try {
+      const completion = await chatWithFallback(
+        [
+          { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
+          { role: 'user', content: prompt },
+        ],
+        { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 4000, endpoint: 'story' }
+      );
+      rawContent = completion.choices[0]?.message?.content || '';
+      story = tryParseJSON(rawContent);
+    } catch (err) {
+      console.error('[Story] Error:', err);
+      const e = err as Error & { status?: number };
+      if (e.status === 429) {
+        await new Promise(resolve => setTimeout(resolve, 7000));
+        try {
+          const completion = await chatWithFallback(
+            [
+              { role: 'system', content: 'Write engaging audiobook-style stories with chapters. JSON only.' },
+              { role: 'user', content: prompt },
+            ],
+            { model: 'llama-3.1-8b-instant', temperature: 0.7, max_tokens: 4000, endpoint: 'story' }
+          );
+          rawContent = completion.choices[0]?.message?.content || '';
+          story = tryParseJSON(rawContent);
+        } catch (retryErr) {
+          console.error('[Story] Retry error:', retryErr);
         }
       }
     }

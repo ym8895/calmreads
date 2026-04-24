@@ -74,23 +74,33 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
     let slides: Slide[] | null = null;
     let rawContent = '';
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const completion = await chatWithFallback(
-          [
-            { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
-            { role: 'user', content: prompt },
-          ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 4000, endpoint: 'slides' }
-        );
-        rawContent = completion.choices[0]?.message?.content || '';
-        slides = tryParseSlides(rawContent);
-        if (slides) break;
-} catch (err) {
-        console.error(`[Slides] Attempt ${attempt + 1}:`, err);
-        const e = err as Error & { status?: number };
-        if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
-          throw err;
+    try {
+      const completion = await chatWithFallback(
+        [
+          { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
+          { role: 'user', content: prompt },
+        ],
+        { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 4000, endpoint: 'slides' }
+      );
+      rawContent = completion.choices[0]?.message?.content || '';
+      slides = tryParseSlides(rawContent);
+    } catch (err) {
+      console.error('[Slides] Error:', err);
+      const e = err as Error & { status?: number };
+      if (e.status === 429) {
+        await new Promise(resolve => setTimeout(resolve, 7000));
+        try {
+          const completion = await chatWithFallback(
+            [
+              { role: 'system', content: 'Create UNIQUE, BOOK-SPECIFIC slides. JSON arrays only.' },
+              { role: 'user', content: prompt },
+            ],
+            { model: 'llama-3.1-8b-instant', temperature: 0.4, max_tokens: 4000, endpoint: 'slides' }
+          );
+          rawContent = completion.choices[0]?.message?.content || '';
+          slides = tryParseSlides(rawContent);
+        } catch (retryErr) {
+          console.error('[Slides] Retry error:', retryErr);
         }
       }
     }

@@ -77,27 +77,36 @@ JSON only, no markdown.`;
     let summary: AISummary | null = null;
     let rawContent = '';
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const completion = await chatWithFallback(
-          [
-            { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
-            { role: 'user', content: prompt },
-          ],
-          { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000, endpoint: 'summary' }
-        );
-        rawContent = completion.choices[0]?.message?.content || '';
-        summary = tryParseJSON(rawContent);
-        if (summary) break;
-      } catch (err) {
-        console.error(`[Summary] Attempt ${attempt + 1}:`, err);
-        const e = err as Error & { status?: number };
-        if (e.status !== 429 && e.status !== 401 && e.status !== undefined) {
-          return NextResponse.json({ error: `AI error: ${e.message}` }, { status: 502 });
-        }
-        if (attempt < 1) {
-          const waitMs = e.status === 429 ? 7000 : 2000;
-          await new Promise(resolve => setTimeout(resolve, waitMs));
+    try {
+      const completion = await chatWithFallback(
+        [
+          { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
+          { role: 'user', content: prompt },
+        ],
+        { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000, endpoint: 'summary' }
+      );
+      rawContent = completion.choices[0]?.message?.content || '';
+      summary = tryParseJSON(rawContent);
+    } catch (err) {
+      console.error('[Summary] Error:', err);
+      const e = err as Error & { status?: number };
+      if (e.status !== 429 && e.status !== 401) {
+        return NextResponse.json({ error: `AI error: ${e.message}` }, { status: 502 });
+      }
+      if (e.status === 429) {
+        await new Promise(resolve => setTimeout(resolve, 7000));
+        try {
+          const completion = await chatWithFallback(
+            [
+              { role: 'system', content: 'Write UNIQUE, SPECIFIC book summaries. Mention title and author. JSON only.' },
+              { role: 'user', content: prompt },
+            ],
+            { model: 'llama-3.1-8b-instant', temperature: 0.5, max_tokens: 4000, endpoint: 'summary' }
+          );
+          rawContent = completion.choices[0]?.message?.content || '';
+          summary = tryParseJSON(rawContent);
+        } catch (retryErr) {
+          console.error('[Summary] Retry error:', retryErr);
         }
       }
     }
