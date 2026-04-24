@@ -49,8 +49,10 @@ async function searchGoogleBooks(query: string) {
     })
     .map((item: any) => {
       const info = item.volumeInfo || {};
+      const access = item.accessInfo || {};
+      const isFree = access.viewability === 'ALL_PUBLIC';
       return {
-        id: item.id,
+        id: item.id.startsWith('gb_') ? item.id : `gb-${item.id}`,
         source: 'google',
         title: info.title || 'Unknown Title',
         author: info.authors?.[0] || 'Unknown Author',
@@ -59,6 +61,9 @@ async function searchGoogleBooks(query: string) {
         categories: info.categories || [],
         coverImage: info.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
         pageCount: info.pageCount,
+        previewLink: info.previewLink || '',
+        isFree,
+        fullTextUrl: isFree ? info.previewLink : undefined,
       };
     });
 }
@@ -72,7 +77,7 @@ async function searchOpenLibrary(query: string) {
     
     const data = await res.json();
     return (data.docs || []).map((doc: any) => ({
-      id: doc.key,
+      id: `ol-${doc.key}`,
       source: 'openlibrary',
       title: doc.title || 'Unknown Title',
       author: doc.author_name?.[0] || 'Unknown Author',
@@ -81,6 +86,9 @@ async function searchOpenLibrary(query: string) {
       categories: doc.subject?.slice(0, 5) || [],
       coverImage: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : '',
       pageCount: 0,
+      previewLink: `https://openlibrary.org${doc.key}`,
+      isFree: true,
+      fullTextUrl: `https://openlibrary.org${doc.key}`,
     }));
   } catch (err) {
     console.error('[OpenLibrary] Error:', err);
