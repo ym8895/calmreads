@@ -19,6 +19,8 @@ export function getUsageLogger() {
     endpoint: string;
     responseTimeMs: number;
     status: string;
+    bookTitle?: string;
+    bookAuthor?: string;
   }) => {
     if (!supabase) {
       console.warn('[Usage] Supabase not configured');
@@ -36,6 +38,8 @@ export function getUsageLogger() {
         endpoint: data.endpoint,
         response_time_ms: data.responseTimeMs,
         status: data.status,
+        book_title: data.bookTitle || null,
+        book_author: data.bookAuthor || null,
       });
 
     if (error) {

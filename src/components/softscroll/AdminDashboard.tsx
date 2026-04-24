@@ -34,6 +34,8 @@ interface UsageData {
     response_time_ms: number;
     status: string;
     created_at: string;
+    book_title?: string;
+    book_author?: string;
   }>;
 }
 
@@ -347,6 +349,7 @@ export default function AdminDashboard() {
                             <th className="text-left py-2 px-2">Endpoint</th>
                             <th className="text-right py-2 px-2">Tokens</th>
                             <th className="text-right py-2 px-2">Latency</th>
+                            <th className="text-left py-2 px-2">Book</th>
                             <th className="text-left py-2 px-2">Status</th>
                           </tr>
                         </thead>
@@ -363,6 +366,16 @@ export default function AdminDashboard() {
                               <td className="py-2 px-2">{r.endpoint}</td>
                               <td className="py-2 px-2 text-right">{formatNumber(r.total_tokens)}</td>
                               <td className="py-2 px-2 text-right">{r.response_time_ms}ms</td>
+                              <td className="py-2 px-2 max-w-[150px] truncate" title={r.book_title || ''}>
+                                {r.book_title ? (
+                                  <div>
+                                    <div className="font-medium text-xs truncate">{r.book_title}</div>
+                                    {r.book_author && <div className="text-xs text-muted-foreground truncate">{r.book_author}</div>}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </td>
                               <td className="py-2 px-2">
                                 <Badge variant={r.status === 'success' ? 'default' : 'destructive'}>
                                   {r.status}
@@ -372,7 +385,7 @@ export default function AdminDashboard() {
                           ))}
                           {(!data.recent || data.recent.length === 0) && (
                             <tr>
-                              <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                              <td colSpan={7} className="text-center py-8 text-muted-foreground">
                                 No requests yet
                               </td>
                             </tr>

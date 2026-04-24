@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AIStory } from '@/lib/types';
-import { chatWithFallback, setUsageLogger } from '@/lib/ai-client';
+import { chatWithFallback, setUsageLogger, setUsageContext, clearUsageContext } from '@/lib/ai-client';
 import { getUsageLogger } from '@/lib/usage-logger';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
     }
 
+    // Set usage context for tracking which book
+    setUsageContext({ bookTitle: title, bookAuthor: author });
+
     const useBookId = bookId || `${title}-${author}`.toLowerCase().replace(/\s+/g, '-');
     const cached = await getBookContent(useBookId);
     if (cached?.story) {
@@ -114,8 +117,10 @@ Return JSON: {"title":"story title","introduction":"intro text","chapters":[{"nu
       }
     }
 
+    clearUsageContext();
     return NextResponse.json(story);
   } catch (error) {
+    clearUsageContext();
     console.error('[Story API] Fatal:', error);
     return NextResponse.json({ error: 'Failed to generate story. Please try again later.' }, { status: 500 });
   }

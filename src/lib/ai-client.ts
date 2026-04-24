@@ -37,10 +37,19 @@ const providers: ProviderConfig[] = [
   { name: 'gemini', client: null, weight: 0, failures: 0, lastFailure: 0 },
 ];
 
-let usageLogger: ((data: { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; endpoint: string; responseTimeMs: number; status: string }) => void) | null = null;
+let usageLogger: ((data: { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; endpoint: string; responseTimeMs: number; status: string; bookTitle?: string; bookAuthor?: string }) => void) | null = null;
+let usageContext: { bookTitle?: string; bookAuthor?: string } = {};
 
 export function setUsageLogger(logger: typeof usageLogger): void {
   usageLogger = logger;
+}
+
+export function setUsageContext(context: { bookTitle?: string; bookAuthor?: string }): void {
+  usageContext = context;
+}
+
+export function clearUsageContext(): void {
+  usageContext = {};
 }
 
 function getHealthyProviders(): ProviderConfig[] {
@@ -77,7 +86,11 @@ function recordSuccess(provider: ProviderConfig): void {
 function logUsage(data: { provider: string; model: string; promptTokens: number; completionTokens: number; totalTokens: number; endpoint: string; responseTimeMs: number; status: string }): void {
   if (usageLogger) {
     try {
-      usageLogger(data);
+      usageLogger({
+        ...data,
+        bookTitle: usageContext.bookTitle,
+        bookAuthor: usageContext.bookAuthor,
+      });
     } catch (err) {
       console.error('[AI LB] Usage logging failed:', err);
     }

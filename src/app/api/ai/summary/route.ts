@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AISummary } from '@/lib/types';
-import { chatWithFallback } from '@/lib/ai-client';
-import { setUsageLogger } from '@/lib/ai-client';
+import { chatWithFallback, setUsageLogger, setUsageContext, clearUsageContext } from '@/lib/ai-client';
 import { getUsageLogger } from '@/lib/usage-logger';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
@@ -49,6 +48,9 @@ export async function POST(request: NextRequest) {
     };
     const { title, author, description, bookId, categories } = body;
     if (!title || !author) return NextResponse.json({ error: 'Book title and author are required' }, { status: 400 });
+
+    // Set usage context for tracking which book
+    setUsageContext({ bookTitle: title, bookAuthor: author });
 
     const useBookId = bookId || `${title}-${author}`.toLowerCase().replace(/\s+/g, '-');
     let cached = null;
@@ -111,8 +113,10 @@ JSON only, no markdown.`;
       }
     }
 
+    clearUsageContext();
     return NextResponse.json(summary);
   } catch (error) {
+    clearUsageContext();
     console.error('[Summary API] Fatal:', error);
     const e = error as Error & { status?: number };
     if (e.status) return NextResponse.json({ error: e.message }, { status: e.status > 499 ? 502 : e.status });

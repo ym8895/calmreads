@@ -135,6 +135,13 @@ Book discovery + AI audio summaries for curious minds.
 - Mistral
 - Gemini (disabled - failed)
 
+### Supabase Schema Update Needed
+Add columns to `api_usage` table:
+- book_title (text)
+- book_author (text)
+
+This will track which book each API call is for, making it easy to debug issues.
+
 ---
 
 ## SoftScroll v2.1.0.1 - Features to Implement

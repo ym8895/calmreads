@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Slide } from '@/lib/types';
-import { chatWithFallback, setUsageLogger } from '@/lib/ai-client';
+import { chatWithFallback, setUsageLogger, setUsageContext, clearUsageContext } from '@/lib/ai-client';
 import { getUsageLogger } from '@/lib/usage-logger';
 import { getBookContent, updateBookContent } from '@/lib/supabase';
 
@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
     if (!summary?.fullText) return NextResponse.json({ error: 'Summary text is required' }, { status: 400 });
     if (!bookId && bookTitle) bookId = `${bookTitle}-${bookAuthor}`.toLowerCase().replace(/\s+/g, '-');
 
+    // Set usage context for tracking which book
+    if (bookTitle) setUsageContext({ bookTitle, bookAuthor: bookAuthor || 'Unknown' });
+
     if (bookId) {
       const cached = await getBookContent(bookId);
       if (cached?.slides) {
@@ -103,8 +106,10 @@ Return JSON: [{"title":"slide","points":["point1","point2","point3","point4","po
       }
     }
 
+    clearUsageContext();
     return NextResponse.json(slides);
   } catch (error) {
+    clearUsageContext();
     console.error('[Slides API] Fatal:', error);
     return NextResponse.json({ error: 'Failed to generate slides. Please try again later.' }, { status: 500 });
   }
