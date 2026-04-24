@@ -26,7 +26,6 @@ export function DiscoverView() {
       setIsLoadingTrending(true);
       import('@/lib/api').then(({ fetchTrendingBooks }) => 
         fetchTrendingBooks(10, 24).then(data => {
-          // Map trending to books - we need to fetch details
           setTrendingBooks(data.map(t => ({
             id: t.bookId,
             title: t.bookTitle,
@@ -40,8 +39,8 @@ export function DiscoverView() {
       );
     }
     
-    // Load recommended books when tab is clicked and no books exist
-    if (activeTab === 'recommended' && recommendedBooks.length === 0 && selectedInterests.length > 0) {
+    // Always load recommended books when switching to that tab if interests selected
+    if (activeTab === 'recommended' && selectedInterests.length > 0) {
       setIsLoading(true);
       import('@/lib/api').then(({ fetchRecommendedBooks }) => 
         fetchRecommendedBooks(selectedInterests).then(books => {
@@ -49,7 +48,7 @@ export function DiscoverView() {
         }).catch(() => {}).finally(() => setIsLoading(false))
       );
     }
-  }, [activeTab]);
+  }, [activeTab, selectedInterests]);
 
   // Clear search results when query changes
   useEffect(() => {
