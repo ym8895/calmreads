@@ -96,6 +96,10 @@ export function DiscoverView() {
     }
   };
 
+  const handleTabChange = (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
+    setDiscoverTab(tab);
+  };
+
   // Filter and sort
   let filteredBooks = recommendedBooks;
   if (categoryFilter) {
