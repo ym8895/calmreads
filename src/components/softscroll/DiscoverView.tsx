@@ -41,14 +41,30 @@ export function DiscoverView() {
     }
   }, [activeTab]);
 
+  // Clear search results when query changes
+  useEffect(() => {
+    setSearchResults([]);
+  }, [searchQuery]);
+
   // Search when search tab is active
   useEffect(() => {
     const doSearch = async () => {
-      if (activeTab === 'search' && searchQuery.trim() && searchResults.length === 0) {
+      if (activeTab === 'search' && searchQuery.trim()) {
         setIsLoadingSearch(true);
         try {
           const books = await fetchSearchBooks(searchQuery);
-          setSearchResults(books);
+          // Filter by selected categories if any
+          let filtered = books;
+          if (selectedInterests.length > 0) {
+            filtered = books.filter(b => 
+              b.categories?.some(c => 
+                selectedInterests.some(interest => 
+                  c.toLowerCase().includes(interest.toLowerCase())
+                )
+              )
+            );
+          }
+          setSearchResults(filtered);
         } catch (err) {
           console.error('Search error:', err);
         } finally {
@@ -59,7 +75,7 @@ export function DiscoverView() {
     
     const timer = setTimeout(doSearch, 500);
     return () => clearTimeout(timer);
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, selectedInterests]);
 
   const handleRefresh = async () => {
     setIsLoading(true);

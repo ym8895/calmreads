@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Header() {
-  const { currentView, setCurrentView, savedBooks, searchQuery, setSearchQuery, addRecentSearch } = useSoftScrollStore();
+  const { currentView, setCurrentView, savedBooks, searchQuery, setSearchQuery, addRecentSearch, setDiscoverTab } = useSoftScrollStore();
   const [showSearch, setShowSearch] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -23,8 +23,9 @@ export function Header() {
       if (currentView !== 'discover') {
         setCurrentView('discover');
       }
+      setDiscoverTab('search');
     }
-  }, [localSearch, setSearchQuery, addRecentSearch, setCurrentView, currentView]);
+  }, [localSearch, setSearchQuery, addRecentSearch, setCurrentView, currentView, setDiscoverTab]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
