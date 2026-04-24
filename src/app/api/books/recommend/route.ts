@@ -37,6 +37,46 @@ return (data.docs || []).map((doc: Record<string, unknown>) => ({
   }
 }
 
+// Fetch from Google Books
+async function fetchFromGoogleBooks(query: string): Promise<Book[]> {
+  try {
+    const googleKey = process.env.GOOGLE_BOOKS_API_KEY;
+    let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&orderBy=relevance&printType=books&langRestrict=en`;
+    if (googleKey) url += `&key=${googleKey}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    return (data.items || [])
+      .filter((item: any) => {
+        const maturity = item.volumeInfo?.maturityRating;
+        return maturity !== 'MATURE' && maturity !== 'ADULT';
+      })
+      .map((item: any) => {
+        const info = item.volumeInfo || {};
+        const access = item.accessInfo || {};
+        const isFree = access.viewability === 'ALL_PUBLIC';
+        return {
+          id: item.id.startsWith('gb_') ? item.id : `gb-${item.id}`,
+          source: 'google',
+          title: info.title || 'Unknown Title',
+          author: info.authors?.[0] || 'Unknown Author',
+          description: info.description || '',
+          publishedYear: info.publishedDate?.split('-')[0],
+          categories: info.categories || [],
+          coverImage: info.imageLinks?.thumbnail?.replace('http:', 'https:') || '',
+          pageCount: info.pageCount,
+          previewLink: info.previewLink || '',
+          isFree,
+          fullTextUrl: isFree ? info.previewLink : undefined,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
 function deduplicateBooks(books: Book[]): Book[] {
   const seen = new Set<string>();
   const result: Book[] = [];
@@ -75,8 +115,11 @@ export async function POST(request: NextRequest) {
       .slice(0, 15);
 
     const fetchPromises = searchTerms.map(async (term) => {
-      const olBooks = await fetchFromOpenLibrary(term);
-      allBooks.push(...olBooks);
+      const [olBooks, gbBooks] = await Promise.all([
+        fetchFromOpenLibrary(term),
+        fetchFromGoogleBooks(term),
+      ]);
+      allBooks.push(...olBooks, ...gbBooks);
     });
 
     await Promise.all(fetchPromises);
