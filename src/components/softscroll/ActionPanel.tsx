@@ -184,8 +184,8 @@ export function ActionPanel() {
                 {currentBook.fullTextUrl ? (
                   <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-lg">
                     {currentBook.fullTextUrl?.includes('gutenberg') 
-                      ? '✓ Free on Gutenberg - no signup'
-                      : '✓ Free from Open Library'}
+                      ? '✓ Free on Gutenberg - no signup needed'
+                      : '✓ Free from Open Library - may need free account'}
                   </p>
                 ) : currentBook.previewLink ? (
                   <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg">
@@ -203,23 +203,14 @@ export function ActionPanel() {
                 </button>
               </div>
 
-              {/* Reading Notes */}
-              <div>
-                <button
-                  onClick={() => setShowNotes(!showNotes)}
-                  className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer mb-2"
-                >
-                  <StickyNote className="w-3.5 h-3.5" />
-                  {showNotes ? 'Hide Notes' : 'My Notes'}
-                  {notes[currentBook.id] && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#8FB9A8]" />
-                  )}
-                </button>
+{/* Reading Notes - inline section after My Notes button */}
+              <AnimatePresence>
                 {showNotes && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2"
                   >
                     {notes[currentBook.id] && (
                       <div className="p-3 rounded-xl bg-[#F5F0E8]/50 dark:bg-[#2C4A3F]/20 border border-border/30 mb-2 relative">
@@ -242,46 +233,13 @@ export function ActionPanel() {
                     <button
                       onClick={handleSaveNote}
                       disabled={!note.trim()}
-                      className="mt-1.5 px-3 py-1.5 rounded-lg bg-[#8FB9A8] hover:bg-[#7AA896] text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="w-full px-3 py-1.5 rounded-lg bg-[#8FB9A8] hover:bg-[#7AA896] text-white text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       Save Note
                     </button>
                   </motion.div>
                 )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* Discover CTA - shows on interest picker when no topics selected */}
-          {showDiscoverCta && selectedInterests.length === 0 && (
-            <motion.div
-              key="discover-cta"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-4"
-            >
-              <h3 className="text-sm font-semibold text-foreground/80">Get Started</h3>
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-[#D4E6E0]/40 to-[#E8E4D9]/40 dark:from-[#2C4A3F]/20 dark:to-[#344E44]/20 border border-border/30">
-                <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                  Select your favorite topics from the center panel, then discover personalized book recommendations curated just for you.
-                </p>
-                <p className="text-center text-xs text-muted-foreground/60 italic">
-                  Pick topics to begin
-                </p>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 rounded-xl bg-muted/30 text-center">
-                  <p className="text-lg font-bold text-[#8FB9A8]">{savedBooks.length}</p>
-                  <p className="text-[10px] text-muted-foreground">Saved Books</p>
-                </div>
-                <div className="p-3 rounded-xl bg-muted/30 text-center">
-                  <p className="text-lg font-bold text-[#8FB9A8]">{selectedInterests.length}</p>
-                  <p className="text-[10px] text-muted-foreground">Topics</p>
-                </div>
-              </div>
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
