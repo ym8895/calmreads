@@ -25,43 +25,13 @@ async function fetchFromOpenLibrary(query: string): Promise<Book[]> {
       description: Array.isArray(doc.subject) ? doc.subject.slice(0, 5).join(', ') : '',
       coverImage: doc.cover_i
         ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
-        : '/placeholder-book.svg',
-      previewLink: `https://openlibrary.org${doc.key}`,
-      isFree: false,
-      fullTextUrl: undefined,
-      categories: Array.isArray(doc.subject) ? doc.subject.slice(0, 3) as string[] : [],
-      publishedYear: doc.first_publish_year as number | undefined,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-// Fetch from Google Books — metadata only
-async function fetchFromGoogleBooks(query: string): Promise<Book[]> {
-  try {
-    const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=100`,
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.items || []).map((item: Record<string, unknown>) => {
-      const volumeInfo = item.volumeInfo as Record<string, unknown>;
-      return {
-        id: `gb-${(item.id as string) || Math.random().toString(36).slice(2)}`,
-        title: (volumeInfo?.title as string) || 'Unknown Title',
-        author: Array.isArray(volumeInfo?.authors)
-          ? volumeInfo.authors[0]
-          : (volumeInfo?.authors as string) || 'Unknown Author',
-        description: typeof volumeInfo?.description === 'string'
-          ? volumeInfo.description.slice(0, 300)
-          : '',
-        coverImage: (volumeInfo?.imageLinks?.thumbnail as string) || '/placeholder-book.svg',
+: '/placeholder-book.svg',
         previewLink: (volumeInfo?.previewLink as string) || (volumeInfo?.infoLink as string) || '#',
         buyLink: (volumeInfo?.infoLink as string) || undefined,
-        isFree: false,
-        fullTextUrl: undefined,
+        isFree: (volumeInfo as any)?.accessInfo?.viewability === 'ALL_PUBLIC',
+        fullTextUrl: (volumeInfo as any)?.accessInfo?.viewability === 'ALL_PUBLIC' 
+          ? (volumeInfo?.previewLink as string) 
+          : undefined,
         categories: Array.isArray(volumeInfo?.categories) ? volumeInfo.categories as string[] : [],
         publishedYear: volumeInfo?.publishedDate ? parseInt(String(volumeInfo.publishedDate)) || undefined : undefined,
         pageCount: volumeInfo?.pageCount as number | undefined,
