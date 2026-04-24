@@ -7,7 +7,7 @@ import { BookCard } from './BookCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, BookX, Search, Clock, TrendingUp } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { categories } from '@/lib/categories';
 import { fetchSearchBooks } from '@/lib/api';
 
@@ -21,7 +21,14 @@ export function DiscoverView() {
   const [isLoadingTrending, setIsLoadingTrending] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
 
+  // Keep track of last active tab to detect tab switches
+  const lastActiveTab = useRef(activeTab);
+
   useEffect(() => {
+    // Only trigger when tab actually changes
+    if (activeTab === lastActiveTab.current) return;
+    lastActiveTab.current = activeTab;
+    
     if (activeTab === 'trending' && trendingBooks.length === 0) {
       setIsLoadingTrending(true);
       import('@/lib/api').then(({ fetchTrendingBooks }) => 
@@ -39,7 +46,7 @@ export function DiscoverView() {
       );
     }
     
-    // Always load recommended books when switching to that tab if interests selected
+    // Load recommended books when switching to that tab
     if (activeTab === 'recommended' && selectedInterests.length > 0) {
       setIsLoading(true);
       import('@/lib/api').then(({ fetchRecommendedBooks }) => 
@@ -48,7 +55,7 @@ export function DiscoverView() {
         }).catch(() => {}).finally(() => setIsLoading(false))
       );
     }
-  }, [activeTab, selectedInterests]);
+  }, [activeTab]);
 
   // Clear search results when query changes
   useEffect(() => {
