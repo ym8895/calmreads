@@ -4,9 +4,9 @@ export interface Book {
   author: string;
   description: string;
   coverImage: string;
-  previewLink: string;
+  previewLink?: string;
   buyLink?: string;
-  isFree: boolean;
+  isFree?: boolean;
   fullTextUrl?: string;
   categories: string[];
   publishedYear?: number;
