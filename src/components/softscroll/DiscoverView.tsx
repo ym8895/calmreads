@@ -23,27 +23,30 @@ export function DiscoverView() {
 
 // Load trending books + fetch covers if missing
   useEffect(() => {
-    if (activeTab === 'trending' && trendingBooks.length === 0) {
+    if (activeTab === 'trending') {
       setIsLoadingTrending(true);
       import('@/lib/api').then(async ({ fetchTrendingBooks }) => {
         try {
           let data = await fetchTrendingBooks(10, 24);
           
           // If no covers, try to fetch from Google Books
-          const booksWithoutCovers = data.filter(t => !t.coverUrl);
-          if (booksWithoutCovers.length > 0) {
-            for (let t of booksWithoutCovers) {
+          for (let i = 0; i < data.length; i++) {
+            const t = data[i];
+            if (!t.coverUrl && t.bookTitle) {
               try {
                 const res = await fetch(`/api/books/search?q=${encodeURIComponent(t.bookTitle)}`);
                 const result = await res.json();
-                if (result.books?.[0]?.coverImage) {
-                  t.coverUrl = result.books[0].coverImage;
-                  t.bookAuthor = result.books[0].author;
+                if (result.books?.[0]) {
+                  data[i] = { 
+                    ...t, 
+                    coverUrl: result.books[0].coverImage || t.coverUrl, 
+                    bookAuthor: result.books[0].author || t.bookAuthor 
+                  };
                 }
               } catch {}
             }
           }
-          
+           
           setTrendingBooks(data.map(t => ({
             id: t.bookId,
             title: t.bookTitle,
