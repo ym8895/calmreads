@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import {
   FileText, Headphones, LayoutGrid, BookOpen,
-  ChevronRight, Volume2, Loader2, AlertCircle
+  ChevronRight, Volume2, Loader2, AlertCircle, Book
 } from 'lucide-react';
 import { AudioPlayer, stopGlobalSpeech, AIAudioPlayer } from './AudioPlayer';
 import { ArtisticBookCover } from './ArtisticBook';
@@ -201,6 +201,12 @@ export function BookDetailView() {
     { id: 'story', label: 'Story', icon: <BookOpen className="w-4 h-4" /> },
   ];
 
+  const handleReadBook = () => {
+    if (currentBook.fullTextUrl) {
+      window.open(currentBook.fullTextUrl, '_blank');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-2 sm:px-6 py-4 sm:py-12">
       {/* Book Hero - Artistic Layout */}
@@ -256,6 +262,24 @@ export function BookDetailView() {
               >
                 {isSaved ? 'Saved' : 'Save for Later'}
               </button>
+              {currentBook.isFree && currentBook.fullTextUrl && (
+                <button
+                  onClick={handleReadBook}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <Book className="w-4 h-4" />
+                  Read Free
+                </button>
+              )}
+              {currentBook.isFree && currentBook.fullTextUrl && (
+                <button
+                  onClick={handleReadBook}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors cursor-pointer inline-flex items-center gap-2"
+                >
+                  <Book className="w-4 h-4" />
+                  Read Free
+                </button>
+              )}
               {currentBook.previewLink && (
                 <a
                   href={currentBook.previewLink}
