@@ -42,16 +42,30 @@ export function DiscoverView() {
 }, [activeTab]);
 
   // Handle tab click - load fresh data when switching to recommended
-  const handleTabChange = (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
+  const handleTabChange = async (tab: 'recommended' | 'trending' | 'recent' | 'search') => {
     if (tab === 'recommended' && selectedInterests.length > 0) {
+      // Clear search query and results first, then load recommended
+      setSearchQuery('');
+      setSearchResults([]);
+      setDiscoverTab(tab);
       setIsLoading(true);
-      import('@/lib/api').then(({ fetchRecommendedBooks }) => 
-        fetchRecommendedBooks(selectedInterests).then(books => {
-          setRecommendedBooks(books);
-        }).catch(() => {}).finally(() => setIsLoading(false))
-      );
+      try {
+        const { fetchRecommendedBooks } = await import('@/lib/api');
+        const books = await fetchRecommendedBooks(selectedInterests);
+        setRecommendedBooks(books);
+      } catch (err) {
+        console.error('Load error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setDiscoverTab(tab);
+      // Clear search results when leaving search tab
+      if (tab !== 'search') {
+        setSearchQuery('');
+        setSearchResults([]);
+      }
     }
-    setDiscoverTab(tab);
   };
 
   const handleRefresh = async () => {
