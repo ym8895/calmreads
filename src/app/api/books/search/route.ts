@@ -96,6 +96,34 @@ async function searchOpenLibrary(query: string) {
   }
 }
 
+async function searchGutenberg(query: string) {
+  try {
+    const res = await fetch(
+      `https://gutendex.com/books?search=${encodeURIComponent(query)}&limit=15`
+    );
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    return (data.results || []).map((book: any) => ({
+      id: `gut-${book.id}`,
+      source: 'gutenberg',
+      title: book.title || 'Unknown Title',
+      author: book.authors?.[0]?.name || 'Unknown Author',
+      description: '',
+      publishedYear: book.authors?.[0]?.birth_year,
+      categories: book.bookshelves?.slice(0, 5) || [],
+      coverImage: book.formats?.['image/jpeg'] || '',
+      pageCount: book.id ? 100 : 0,
+      previewLink: `https://www.gutenberg.org/ebooks/${book.id}`,
+      isFree: true,
+      fullTextUrl: book.formats?.['text/plain; utf-8'] || `https://www.gutenberg.org/ebooks/${book.id}`,
+    }));
+  } catch (err) {
+    console.error('[Gutenberg] Error:', err);
+    return [];
+  }
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q') || searchParams.get('query');
@@ -105,13 +133,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [googleBooks, openLibraryBooks] = await Promise.all([
+    const [googleBooks, openLibraryBooks, gutenbergBooks] = await Promise.all([
       searchGoogleBooks(query),
-      searchOpenLibrary(query)
+      searchOpenLibrary(query),
+      searchGutenberg(query)
     ]);
     
-    // Filter out explicit content
-    const cleanBooks = books.map(safeBook).filter(book => !isExplicit(book));
+    // Combine all sources and filter explicit content
+    const allBooks = [...googleBooks, ...openLibraryBooks, ...gutenbergBooks];
+    const cleanBooks = allBooks.map(safeBook).filter(book => !isExplicit(book));
 
     // Need at least 10 books, if not enough, fetch more from Google
     if (cleanBooks.length < 10) {
