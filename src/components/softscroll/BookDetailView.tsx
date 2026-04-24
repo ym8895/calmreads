@@ -244,56 +244,52 @@ const generateAudio = async () => {
             </div>
 
             {/* Mobile-only actions (on XL+ these appear in right panel) */}
-            <div className="xl:hidden flex flex-wrap gap-3 mt-4">
+            <div className="xl:hidden flex flex-col gap-3 mt-4">
               <button
                 onClick={() => toggleSaveBook(currentBook)}
-                className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                className={`px-4 py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer w-full ${
                   isSaved
                     ? 'bg-[#D4E6E0] dark:bg-[#2C4A3F]/40 text-[#2C4A3F] dark:text-[#8FB9A8]'
                     : 'bg-muted/40 hover:bg-muted/60 text-muted-foreground'
                 }`}
               >
-                {isSaved ? 'Saved' : 'Save for Later'}
+                {isSaved ? '✓ Saved' : 'Save for Later'}
               </button>
-              {/* Disclaimer - show for all free books */}
-              {currentBook.isFree && currentBook.fullTextUrl && (
-                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                  {currentBook.fullTextUrl.includes('gutenberg') 
-                    ? '★ Free on Gutenberg'
-                    : '★ Open Library'}
-                </span>
-              )}
-              {currentBook.isFree && currentBook.fullTextUrl && (
+              
+              {currentBook.isFree && currentBook.fullTextUrl ? (
                 <button
                   onClick={handleReadBook}
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors cursor-pointer flex items-center gap-2"
+                  className="px-4 py-3 rounded-xl text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer w-full flex items-center justify-center gap-2"
                 >
                   <Book className="w-4 h-4" />
-                  Read Free
+                  📖 Read Free Book
                 </button>
-              )}
-              {currentBook.previewLink && (
+              ) : (
                 <a
                   href={currentBook.previewLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  className="px-4 py-3 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer w-full inline-flex items-center justify-center gap-2"
                 >
-                  Book Link
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  📖 Book Link
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 </a>
               )}
               
-              {/* Free Book Disclaimer - below action buttons */}
-              {currentBook.isFree && currentBook.fullTextUrl && (
-                <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-                  <p className="text-xs text-amber-800 dark:text-amber-200">
-                    {currentBook.fullTextUrl.includes('gutenberg') 
-                      ? '📖 Free on Gutenberg - no signup needed'
-                      : '📖 From Open Library - may need free account'}
-                  </p>
-                </div>
+              {currentBook.isFree && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-lg">
+                  {currentBook.fullTextUrl?.includes('gutenberg') 
+                    ? '✓ Free on Gutenberg - no signup needed'
+                    : '✓ Free from Open Library - may need free account'}
+                </p>
               )}
+              
+              <button
+                onClick={() => setCurrentView('notes')}
+                className="px-4 py-3 rounded-xl text-sm font-medium bg-muted/40 hover:bg-muted/60 text-muted-foreground transition-colors cursor-pointer w-full"
+              >
+                📝 My Notes
+              </button>
             </div>
           </div>
         </div>

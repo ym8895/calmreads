@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSoftScrollStore } from '@/lib/store';
 import { categories } from '@/lib/categories';
 import {
-  Bookmark, BookmarkCheck, BookOpen, ExternalLink,
+  Bookmark, BookmarkCheck, BookOpen, Book, ExternalLink,
   ShoppingBag, Sparkles, ArrowRight, StickyNote, X,
   Tag, Filter
 } from 'lucide-react';
@@ -154,30 +154,53 @@ export function ActionPanel() {
                   }`}
                 >
                   {isSaved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                  {isSaved ? 'Saved to List' : 'Save for Later'}
+                  {isSaved ? '✓ Saved' : 'Save for Later'}
                 </button>
 
-                {currentBook.previewLink && (
-                  <a
-                    href={currentBook.previewLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    Book Link
-                  </a>
-                )}
+                {/* Save & Read Free / Book Link buttons */}
+                {currentBook.fullTextUrl || currentBook.previewLink ? (
+                  currentBook.fullTextUrl ? (
+                    <button
+                      onClick={() => window.open(currentBook.fullTextUrl, '_blank')}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer"
+                    >
+                      <Book className="w-4 h-4" />
+                      📖 Read Free
+                    </button>
+                  ) : (
+                    <a
+                      href={currentBook.previewLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#8FB9A8] hover:bg-[#7AA896] text-white transition-colors cursor-pointer"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Book Link
+                    </a>
+                  )
+                ) : null}
 
-                {currentBook.buyLink && (
-                  <button
-                    onClick={() => window.open(currentBook.buyLink, '_blank')}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-muted/40 hover:bg-muted/60 text-muted-foreground transition-colors cursor-pointer"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    Buy Book
-                  </button>
-                )}
+                {/* Show source of the book */}
+                {currentBook.fullTextUrl ? (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 rounded-lg">
+                    {currentBook.fullTextUrl?.includes('gutenberg') 
+                      ? '✓ Free on Gutenberg - no signup'
+                      : '✓ Free from Open Library'}
+                  </p>
+                ) : currentBook.previewLink ? (
+                  <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg">
+                    Available on Google Books
+                  </p>
+                ) : null}
+
+                {/* My Notes button always visible */}
+                <button
+                  onClick={() => setShowNotes(!showNotes)}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium bg-muted/40 hover:bg-muted/60 text-muted-foreground transition-colors cursor-pointer"
+                >
+                  <StickyNote className="w-4 h-4" />
+                  My Notes
+                </button>
               </div>
 
               {/* Reading Notes */}
