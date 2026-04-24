@@ -30,6 +30,9 @@ function safeBook(book: any): any {
     categories: book.categories?.slice(0, 3) || [],
     coverImage: book.coverImage,
     pageCount: book.pageCount,
+    previewLink: book.previewLink || '',
+    isFree: book.isFree || false,
+    fullTextUrl: book.fullTextUrl,
   };
 }
 
