@@ -145,19 +145,31 @@ export async function getTrendingBooks(hours = 24, limit = 10): Promise<{ bookId
   try {
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
-      .rpc('get_trending_books', { 
-        hours_param: hours, 
-        limit_param: limit,
-        since_param: since 
-      });
+      .from('book_views')
+      .select('book_id, book_title, book_author, cover_url')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false });
     if (error || !data) return [];
-    return data.map((d: any) => ({
-      bookId: d.book_id,
-      bookTitle: d.book_title,
-      bookAuthor: d.book_author || '',
-      coverUrl: d.cover_url || '',
-      views: d.views
-    }));
+    
+    const viewsMap = new Map<string, { bookId: string; bookTitle: string; bookAuthor: string; coverUrl: string; views: number }>();
+    data.forEach((row: any) => {
+      const existing = viewsMap.get(row.book_id);
+      if (existing) {
+        existing.views++;
+      } else {
+        viewsMap.set(row.book_id, { 
+          bookId: row.book_id, 
+          bookTitle: row.book_title, 
+          bookAuthor: row.book_author || '',
+          coverUrl: row.cover_url || '',
+          views: 1 
+        });
+      }
+    });
+    
+    return Array.from(viewsMap.values())
+      .sort((a, b) => b.views - a.views)
+      .slice(0, limit);
   } catch { return []; }
 }
 
