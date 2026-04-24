@@ -283,6 +283,17 @@ const generateAudio = async () => {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 </a>
               )}
+              
+              {/* Free Book Disclaimer - below action buttons */}
+              {currentBook.isFree && currentBook.fullTextUrl && (
+                <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                  <p className="text-xs text-amber-800 dark:text-amber-200">
+                    {currentBook.fullTextUrl.includes('gutenberg') 
+                      ? '📖 Free on Gutenberg - no signup needed'
+                      : '📖 From Open Library - may need free account'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -519,20 +530,6 @@ const generateAudio = async () => {
                 >
                   <SlideCarousel slides={slides} />
                 </motion.div>
-              )}
-
-              {/* Free Book Disclaimer */}
-              {currentBook.isFree && currentBook.fullTextUrl && (
-                <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-2">
-                    📖 Free Book Access
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    {currentBook.fullTextUrl.includes('gutenberg') 
-                      ? 'This book is free on Project Gutenberg - no signup required to read.'
-                      : 'This book is from Open Library. Some features may require a free account.'}
-                  </p>
-                </div>
               )}
 
               {/* AI Disclaimer */}
